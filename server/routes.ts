@@ -3,9 +3,10 @@ import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { storage } from "./storage";
 import { insertScrapingJobSchema, insertVehicleSchema } from "@shared/schema";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
 import { Parser } from "json2csv";
 import * as XLSX from "xlsx";
+import { execSync } from "child_process";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -33,6 +34,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
+  function getChromiumPath() {
+    try {
+      // Try to find chromium executable
+      const chromiumPath = execSync("which chromium", { encoding: "utf8" }).trim();
+      return chromiumPath;
+    } catch {
+      // Fallback to common paths
+      const fallbackPaths = [
+        "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium",
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
+        "chromium"
+      ];
+      return fallbackPaths[0];
+    }
+  }
+
   // Enhanced scraping function
   async function scrapeInventory(jobId: string, url: string, options: any = {}) {
     const job = await storage.getScrapingJob(jobId);
@@ -45,9 +63,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     let browser;
     try {
+      const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || getChromiumPath();
+      console.log(`Using Chromium at: ${executablePath}`);
+      
       browser = await puppeteer.launch({
         headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--disable-gpu",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding"
+        ],
+        executablePath,
       });
       
       const page = await browser.newPage();
@@ -55,7 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let previousHeight;
       let vehicles = [];
-      const maxVehicles = options.maxVehicles || 50;
+      const maxVehicles = options?.maxVehicles || job.maxVehicles || 50;
 
       while (vehicles.length < maxVehicles) {
         previousHeight = await page.evaluate("document.body.scrollHeight");
