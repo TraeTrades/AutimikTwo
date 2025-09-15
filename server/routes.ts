@@ -1,0 +1,374 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { WebSocketServer } from "ws";
+import { storage } from "./storage";
+import { insertScrapingJobSchema, insertVehicleSchema } from "@shared/schema";
+import puppeteer from "puppeteer";
+import { Parser } from "json2csv";
+import * as XLSX from "xlsx";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  const httpServer = createServer(app);
+  
+  // WebSocket server for real-time updates
+  const wss = new WebSocketServer({ server: httpServer });
+  const activeConnections = new Map();
+
+  wss.on('connection', (ws) => {
+    const connectionId = Math.random().toString(36);
+    activeConnections.set(connectionId, ws);
+    
+    ws.on('close', () => {
+      activeConnections.delete(connectionId);
+    });
+  });
+
+  // Broadcast progress updates to all connected clients
+  function broadcastProgress(jobId: string, progress: any) {
+    const message = JSON.stringify({ type: 'progress', jobId, data: progress });
+    activeConnections.forEach((ws) => {
+      if (ws.readyState === 1) { // OPEN
+        ws.send(message);
+      }
+    });
+  }
+
+  // Enhanced scraping function
+  async function scrapeInventory(jobId: string, url: string, options: any = {}) {
+    const job = await storage.getScrapingJob(jobId);
+    if (!job) throw new Error("Job not found");
+
+    await storage.updateScrapingJob(jobId, { 
+      status: "running", 
+      startedAt: new Date() 
+    });
+
+    let browser;
+    try {
+      browser = await puppeteer.launch({
+        headless: "new",
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      });
+      
+      const page = await browser.newPage();
+      await page.goto(url, { waitUntil: "networkidle2" });
+
+      let previousHeight;
+      let vehicles = [];
+      const maxVehicles = options.maxVehicles || 50;
+
+      while (vehicles.length < maxVehicles) {
+        previousHeight = await page.evaluate("document.body.scrollHeight");
+        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
+        await page.waitForTimeout(1500);
+
+        // Enhanced vehicle extraction
+        const pageVehicles = await page.evaluate(() => {
+          const cars = [];
+          const selectors = [
+            "[class*='vehicle']",
+            "[class*='inventory']",
+            "[class*='car']",
+            "[class*='listing']",
+            "[data-testid*='vehicle']"
+          ];
+          
+          selectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach((el) => {
+              // Extract VIN
+              const vin = el.innerText.match(/[A-HJ-NPR-Z0-9]{17}/)?.[0] || "N/A";
+              
+              // Extract title
+              const titleEl = el.querySelector("h1,h2,h3,h4,[class*='title'],[class*='name']");
+              const title = titleEl?.innerText || "Unknown Vehicle";
+              
+              // Extract price
+              const priceMatch = el.innerText.match(/\$[\d,]+/);
+              const price = priceMatch?.[0] || "N/A";
+              
+              // Extract mileage
+              const mileageMatch = el.innerText.match(/([\d,]+)\s?miles/i);
+              const mileage = mileageMatch?.[0] || "N/A";
+              
+              // Extract image
+              const imgEl = el.querySelector("img");
+              const imageUrl = imgEl?.src || "";
+              
+              // Extract additional details
+              const make = title.split(" ")[0] || "";
+              const modelMatch = title.match(/\d{4}\s+(\w+)\s+(.+)/);
+              const model = modelMatch?.[2] || "";
+              const yearMatch = title.match(/(\d{4})/);
+              const year = yearMatch ? parseInt(yearMatch[1]) : null;
+              
+              if (vin !== "N/A" && title !== "Unknown Vehicle") {
+                cars.push({ 
+                  vin, 
+                  title, 
+                  price, 
+                  mileage, 
+                  imageUrl,
+                  make,
+                  model,
+                  year,
+                  dealershipUrl: window.location.href
+                });
+              }
+            });
+          });
+          
+          return cars;
+        });
+
+        // Remove duplicates and add new vehicles
+        const existingVins = new Set(vehicles.map(v => v.vin));
+        const newVehicles = pageVehicles.filter(v => !existingVins.has(v.vin));
+        vehicles.push(...newVehicles);
+
+        // Update progress
+        const progress = Math.min(Math.round((vehicles.length / maxVehicles) * 100), 100);
+        await storage.updateScrapingJob(jobId, {
+          progress,
+          vehiclesFound: vehicles.length,
+          vehiclesProcessed: vehicles.length
+        });
+
+        broadcastProgress(jobId, {
+          progress,
+          vehiclesFound: vehicles.length,
+          processed: vehicles.length,
+          errors: 0,
+          statusMessage: `Found ${vehicles.length} vehicles...`
+        });
+
+        const newHeight = await page.evaluate("document.body.scrollHeight");
+        if (newHeight === previousHeight || vehicles.length >= maxVehicles) break;
+      }
+
+      // Save vehicles to storage
+      for (const vehicleData of vehicles) {
+        await storage.createVehicle({
+          ...vehicleData,
+          scrapingJobId: jobId
+        });
+      }
+
+      await storage.updateScrapingJob(jobId, {
+        status: "completed",
+        completedAt: new Date(),
+        progress: 100,
+        vehiclesFound: vehicles.length,
+        vehiclesProcessed: vehicles.length
+      });
+
+      broadcastProgress(jobId, {
+        progress: 100,
+        vehiclesFound: vehicles.length,
+        processed: vehicles.length,
+        errors: 0,
+        statusMessage: "Scraping completed successfully",
+        completed: true
+      });
+
+      return vehicles;
+
+    } catch (error) {
+      await storage.updateScrapingJob(jobId, {
+        status: "failed",
+        completedAt: new Date(),
+        errorMessage: error.message
+      });
+
+      broadcastProgress(jobId, {
+        error: error.message,
+        statusMessage: "Scraping failed",
+        completed: true
+      });
+
+      throw error;
+    } finally {
+      if (browser) {
+        await browser.close();
+      }
+    }
+  }
+
+  // API Routes
+  
+  // Get scraping jobs
+  app.get("/api/scraping-jobs", async (req, res) => {
+    try {
+      const jobs = await storage.getAllScrapingJobs();
+      res.json(jobs);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get recent jobs
+  app.get("/api/scraping-jobs/recent", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const jobs = await storage.getRecentJobs(limit);
+      res.json(jobs);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get specific job
+  app.get("/api/scraping-jobs/:id", async (req, res) => {
+    try {
+      const job = await storage.getScrapingJob(req.params.id);
+      if (!job) return res.status(404).json({ error: "Job not found" });
+      res.json(job);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create scraping job
+  app.post("/api/scraping-jobs", async (req, res) => {
+    try {
+      const validatedData = insertScrapingJobSchema.parse(req.body);
+      const job = await storage.createScrapingJob(validatedData);
+      
+      // Start scraping in background
+      scrapeInventory(job.id, job.url, job.options).catch(console.error);
+      
+      res.json({ success: true, job });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Cancel scraping job
+  app.patch("/api/scraping-jobs/:id/cancel", async (req, res) => {
+    try {
+      const job = await storage.updateScrapingJob(req.params.id, {
+        status: "cancelled",
+        completedAt: new Date()
+      });
+      
+      if (!job) return res.status(404).json({ error: "Job not found" });
+      
+      broadcastProgress(req.params.id, {
+        statusMessage: "Scraping cancelled",
+        completed: true
+      });
+      
+      res.json({ success: true, job });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get vehicles
+  app.get("/api/vehicles", async (req, res) => {
+    try {
+      const { search, jobId } = req.query;
+      const vehicles = await storage.searchVehicles(
+        search as string || "", 
+        jobId as string
+      );
+      res.json(vehicles);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get vehicles by job
+  app.get("/api/scraping-jobs/:id/vehicles", async (req, res) => {
+    try {
+      const vehicles = await storage.getVehiclesByJobId(req.params.id);
+      res.json(vehicles);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Export vehicles
+  app.post("/api/vehicles/export", async (req, res) => {
+    try {
+      const { format, fields, vehicleIds } = req.body;
+      
+      let vehicles;
+      if (vehicleIds && vehicleIds.length > 0) {
+        vehicles = await Promise.all(
+          vehicleIds.map(id => storage.getVehicle(id))
+        );
+        vehicles = vehicles.filter(Boolean);
+      } else {
+        vehicles = await storage.searchVehicles("");
+      }
+
+      // Filter fields if specified
+      const exportData = vehicles.map(vehicle => {
+        if (fields && fields.length > 0) {
+          return fields.reduce((obj, field) => {
+            obj[field] = vehicle[field];
+            return obj;
+          }, {});
+        }
+        return vehicle;
+      });
+
+      switch (format) {
+        case "csv":
+          const parser = new Parser();
+          const csv = parser.parse(exportData);
+          res.setHeader('Content-Type', 'text/csv');
+          res.setHeader('Content-Disposition', 'attachment; filename="vehicles.csv"');
+          res.send(csv);
+          break;
+          
+        case "json":
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Content-Disposition', 'attachment; filename="vehicles.json"');
+          res.json(exportData);
+          break;
+          
+        case "excel":
+          const workbook = XLSX.utils.book_new();
+          const worksheet = XLSX.utils.json_to_sheet(exportData);
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Vehicles");
+          const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+          
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          res.setHeader('Content-Disposition', 'attachment; filename="vehicles.xlsx"');
+          res.send(excelBuffer);
+          break;
+          
+        default:
+          res.status(400).json({ error: "Unsupported format" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Stats endpoint
+  app.get("/api/stats", async (req, res) => {
+    try {
+      const jobs = await storage.getAllScrapingJobs();
+      const vehicles = await storage.searchVehicles("");
+      
+      const activeJobs = jobs.filter(job => job.status === "running").length;
+      const completedJobs = jobs.filter(job => job.status === "completed").length;
+      const totalJobs = jobs.length;
+      const successRate = totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
+      
+      res.json({
+        activeJobs,
+        vehiclesScraped: vehicles.length,
+        successRate: `${successRate}%`,
+        totalJobs,
+        completedJobs
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  return httpServer;
+}
