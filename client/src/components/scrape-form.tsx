@@ -24,9 +24,9 @@ export default function ScrapeForm() {
       url: "",
       maxVehicles: 50,
       filters: {
-        vehicleType: "",
-        priceRange: "",
-        yearRange: "",
+        vehicleType: "all",
+        priceRange: "any",
+        yearRange: "any",
       },
       options: {
         includeImages: true,
@@ -126,14 +126,14 @@ export default function ScrapeForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vehicle Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue="">
+                    <Select onValueChange={field.onChange} defaultValue="all">
                       <FormControl>
                         <SelectTrigger data-testid="select-vehicle-type">
                           <SelectValue placeholder="All Types" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">All Types</SelectItem>
+                        <SelectItem value="all">All Types</SelectItem>
                         <SelectItem value="cars">Cars</SelectItem>
                         <SelectItem value="trucks">Trucks</SelectItem>
                         <SelectItem value="suvs">SUVs</SelectItem>
@@ -148,14 +148,14 @@ export default function ScrapeForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Price Range</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue="">
+                    <Select onValueChange={field.onChange} defaultValue="any">
                       <FormControl>
                         <SelectTrigger data-testid="select-price-range">
                           <SelectValue placeholder="Any Price" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Any Price</SelectItem>
+                        <SelectItem value="any">Any Price</SelectItem>
                         <SelectItem value="under-20k">Under $20k</SelectItem>
                         <SelectItem value="20k-50k">$20k - $50k</SelectItem>
                         <SelectItem value="over-50k">Over $50k</SelectItem>
@@ -170,14 +170,14 @@ export default function ScrapeForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Year Range</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue="">
+                    <Select onValueChange={field.onChange} defaultValue="any">
                       <FormControl>
                         <SelectTrigger data-testid="select-year-range">
                           <SelectValue placeholder="Any Year" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Any Year</SelectItem>
+                        <SelectItem value="any">Any Year</SelectItem>
                         <SelectItem value="2020+">2020+</SelectItem>
                         <SelectItem value="2015-2024">2015-2024</SelectItem>
                         <SelectItem value="2010-2024">2010-2024</SelectItem>

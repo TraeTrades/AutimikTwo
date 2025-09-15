@@ -1,6 +1,5 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer } from "ws";
 import { storage } from "./storage";
 import { insertScrapingJobSchema, insertVehicleSchema } from "@shared/schema";
 import puppeteer from "puppeteer-core";
@@ -11,20 +10,10 @@ import { execSync } from "child_process";
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
-  // WebSocket server for real-time updates
-  const wss = new WebSocketServer({ server: httpServer });
+  // We'll set up WebSocket separately to avoid conflicts
   const activeConnections = new Map();
 
-  wss.on('connection', (ws) => {
-    const connectionId = Math.random().toString(36);
-    activeConnections.set(connectionId, ws);
-    
-    ws.on('close', () => {
-      activeConnections.delete(connectionId);
-    });
-  });
-
-  // Broadcast progress updates to all connected clients
+  // Broadcast progress updates to all connected clients  
   function broadcastProgress(jobId: string, progress: any) {
     const message = JSON.stringify({ type: 'progress', jobId, data: progress });
     activeConnections.forEach((ws) => {
