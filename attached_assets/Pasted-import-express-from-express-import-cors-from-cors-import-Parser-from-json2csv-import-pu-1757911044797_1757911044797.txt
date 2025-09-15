@@ -1,0 +1,76 @@
+import express from "express";
+import cors from "cors";
+import { Parser } from "json2csv";
+import puppeteer from "puppeteer";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static("public")); // serve frontend files
+
+// Scraper function
+async function scrapeInventory(url) {
+  const browser = await puppeteer.launch({
+    headless: "new",
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: "networkidle2" });
+
+  let previousHeight;
+  let vehicles = [];
+
+  while (vehicles.length < 50) {
+    previousHeight = await page.evaluate("document.body.scrollHeight");
+    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
+    await page.waitForTimeout(1500);
+
+    vehicles = await page.evaluate(() => {
+      const cars = [];
+      document
+        .querySelectorAll("[class*='vehicle'], [class*='inventory']")
+        .forEach((el) => {
+          const vin =
+            el.innerText.match(/[A-HJ-NPR-Z0-9]{17}/)?.[0] || "N/A";
+          const title = el.querySelector("h2,h3")?.innerText || "Unknown Vehicle";
+          const price = el.innerText.match(/\$[\d,]+/)?.[0] || "N/A";
+          const mileage =
+            el.innerText.match(/[\d,]+ ?miles/i)?.[0] || "N/A";
+          const img = el.querySelector("img")?.src || "";
+          cars.push({ vin, title, price, mileage, img });
+        });
+      return cars;
+    });
+
+    const newHeight = await page.evaluate("document.body.scrollHeight");
+    if (newHeight === previousHeight) break;
+  }
+
+  await browser.close();
+  return vehicles;
+}
+
+// API endpoint
+app.post("/scrape", async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "URL required" });
+
+    const data = await scrapeInventory(url);
+    const parser = new Parser();
+    const csv = parser.parse(data);
+
+    res.json({ success: true, data, csv });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Scraping failed" });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ Autimik running on port ${PORT}`));

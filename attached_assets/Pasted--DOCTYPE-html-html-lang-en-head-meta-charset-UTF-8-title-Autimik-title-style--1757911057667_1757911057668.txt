@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Autimik</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9fafb; }
+    h1 { text-align: center; }
+    #results { margin-top: 20px; overflow-y: auto; max-height: 500px; }
+    table { border-collapse: collapse; width: 100%; background: white; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: #eee; position: sticky; top: 0; }
+    img { height: 40px; }
+    button { background: #2563eb; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #1e40af; }
+    input { width: 80%; padding: 8px; margin-right: 10px; }
+  </style>
+</head>
+<body>
+  <h1>🚗 Autimik — Vehicle Scraper</h1>
+  <div>
+    <input type="text" id="url" placeholder="Enter dealership inventory URL">
+    <button onclick="scrape()">Scrape</button>
+  </div>
+  <div id="results"></div>
+  <a id="download" style="display:none;" download="inventory.csv">⬇️ Download CSV</a>
+
+  <script>
+    async function scrape() {
+      const url = document.getElementById("url").value;
+      const res = await fetch("/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert("Scrape failed: " + data.error);
+        return;
+      }
+
+      // Table
+      const table = ["<table><thead><tr><th>VIN</th><th>Title</th><th>Price</th><th>Mileage</th><th>Image</th></tr></thead><tbody>"];
+      data.data.forEach(v => {
+        table.push(`<tr>
+          <td>${v.vin}</td>
+          <td>${v.title}</td>
+          <td>${v.price}</td>
+          <td>${v.mileage}</td>
+          <td>${v.img ? `<img src="${v.img}" />` : ""}</td>
+        </tr>`);
+      });
+      table.push("</tbody></table>");
+      document.getElementById("results").innerHTML = table.join("");
+
+      // CSV download
+      const csvBlob = new Blob([data.csv], { type: "text/csv" });
+      const csvUrl = URL.createObjectURL(csvBlob);
+      const link = document.getElementById("download");
+      link.href = csvUrl;
+      link.style.display = "inline-block";
+    }
+  </script>
+</body>
+</html>
