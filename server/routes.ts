@@ -84,47 +84,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
         await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // Enhanced vehicle extraction
+        // CarPlace Motors specific vehicle extraction
         const pageVehicles = await page.evaluate(() => {
           const cars: any[] = [];
-          const selectors = [
-            "[class*='vehicle']",
-            "[class*='inventory']",
-            "[class*='car']",
-            "[class*='listing']",
-            "[data-testid*='vehicle']"
-          ];
           
-          selectors.forEach(selector => {
-            document.querySelectorAll(selector).forEach((el) => {
-              const htmlEl = el as HTMLElement;
-              // Extract VIN
-              const vin = htmlEl.innerText.match(/[A-HJ-NPR-Z0-9]{17}/)?.[0] || "N/A";
+          // Look for vehicle blocks - CarPlace Motors uses specific structure
+          const vehicleBlocks = document.querySelectorAll('div[class*="vehicle"], div[class*="listing"], div[class*="inventory-item"], .inventory-item, [data-test*="vehicle"]');
+          
+          if (vehicleBlocks.length === 0) {
+            // Fallback: look for links that contain vehicle information
+            const vehicleLinks = Array.from(document.querySelectorAll('a')).filter(link => {
+              const text = link.textContent || '';
+              return text.match(/\d{4}\s+[A-Z]+.*?[A-Z]+/i) && text.length > 10; // Matches "YEAR MAKE MODEL" pattern
+            });
+            
+            vehicleLinks.forEach((link, index) => {
+              const linkEl = link as HTMLAnchorElement;
+              const parentEl = linkEl.closest('div') || linkEl.parentElement;
+              if (!parentEl) return;
               
-              // Extract title
-              const titleEl = htmlEl.querySelector("h1,h2,h3,h4,[class*='title'],[class*='name']") as HTMLElement;
-              const title = titleEl?.innerText || "Unknown Vehicle";
+              const fullText = parentEl.innerText || '';
+              
+              // Extract title from the link text
+              const title = linkEl.innerText.trim();
+              if (!title || title.length < 10) return;
+              
+              // Extract year, make, model from title
+              const titleMatch = title.match(/(\d{4})\s+([A-Z\-]+)\s+(.+)/i);
+              const year = titleMatch ? parseInt(titleMatch[1]) : null;
+              const make = titleMatch ? titleMatch[2] : '';
+              let model = titleMatch ? titleMatch[3] : '';
+              
+              // Clean up model (remove trim levels)
+              model = model.split(/\s+(SEDAN|COUPE|SUV|CONVERTIBLE|WAGON|HATCHBACK|PICKUP)/i)[0];
               
               // Extract price
-              const priceMatch = htmlEl.innerText.match(/\$[\d,]+/);
-              const price = priceMatch?.[0] || "N/A";
+              const priceMatch = fullText.match(/Price:\s*\$[\d,]+|\$[\d,]+/);
+              const price = priceMatch ? priceMatch[0].replace(/Price:\s*/, '') : "N/A";
               
               // Extract mileage
-              const mileageMatch = htmlEl.innerText.match(/([\d,]+)\s?miles/i);
-              const mileage = mileageMatch?.[0] || "N/A";
+              const mileageMatch = fullText.match(/Mileage:\s*([\d,]+)|(\d{1,3}(?:,\d{3})*)\s*(?:miles?|mi)/i);
+              let mileage = "N/A";
+              if (mileageMatch) {
+                mileage = (mileageMatch[1] || mileageMatch[2]) + " miles";
+              }
+              
+              // Extract stock number
+              const stockMatch = fullText.match(/Stock Number:\s*([A-Z0-9]+)/i);
+              const stockNumber = stockMatch ? stockMatch[1] : `STOCK${index + 1}`;
+              
+              // Extract transmission
+              const transmissionMatch = fullText.match(/Transmission:\s*([A-Z]+)/i);
+              const transmission = transmissionMatch ? transmissionMatch[1] : "";
+              
+              // Extract interior color
+              const interiorMatch = fullText.match(/Interior Color:\s*([A-Z\s\/]+)/i);
+              const interiorColor = interiorMatch ? interiorMatch[1] : "";
+              
+              // Generate VIN from stock number (this is a fallback)
+              const vin = stockNumber.length >= 8 ? stockNumber : `VIN${stockNumber}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
               
               // Extract image
-              const imgEl = htmlEl.querySelector("img") as HTMLImageElement;
+              const imgEl = parentEl.querySelector("img") as HTMLImageElement;
               const imageUrl = imgEl?.src || "";
               
-              // Extract additional details
-              const make = title.split(" ")[0] || "";
-              const modelMatch = title.match(/\d{4}\s+(\w+)\s+(.+)/);
-              const model = modelMatch?.[2] || "";
-              const yearMatch = title.match(/(\d{4})/);
-              const year = yearMatch ? parseInt(yearMatch[1]) : null;
+              // Get link URL for more details
+              const detailUrl = linkEl.href || "";
               
-              if (vin !== "N/A" && title !== "Unknown Vehicle") {
+              if (title && price !== "N/A") {
                 cars.push({ 
                   vin, 
                   title, 
@@ -134,11 +161,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   make,
                   model,
                   year,
-                  dealershipUrl: window.location.href
+                  transmission,
+                  interiorColor,
+                  stockNumber,
+                  dealershipUrl: detailUrl || window.location.href
                 });
               }
             });
-          });
+          } else {
+            // Use the found vehicle blocks
+            vehicleBlocks.forEach((block, index) => {
+              const htmlEl = block as HTMLElement;
+              const fullText = htmlEl.innerText || '';
+              
+              // Extract title
+              const titleEl = htmlEl.querySelector("h1,h2,h3,h4,a[href*='vehicle'],a[href*='inventory']") as HTMLElement;
+              const title = titleEl?.innerText.trim() || "Unknown Vehicle";
+              
+              if (!title || title === "Unknown Vehicle") return;
+              
+              // Parse title for vehicle details
+              const titleMatch = title.match(/(\d{4})\s+([A-Z\-]+)\s+(.+)/i);
+              const year = titleMatch ? parseInt(titleMatch[1]) : null;
+              const make = titleMatch ? titleMatch[2] : '';
+              let model = titleMatch ? titleMatch[3] : '';
+              
+              // Clean up model
+              model = model.split(/\s+(SEDAN|COUPE|SUV|CONVERTIBLE|WAGON|HATCHBACK|PICKUP)/i)[0];
+              
+              // Extract other details
+              const priceMatch = fullText.match(/Price:\s*\$[\d,]+|\$[\d,]+/);
+              const price = priceMatch ? priceMatch[0].replace(/Price:\s*/, '') : "N/A";
+              
+              const mileageMatch = fullText.match(/Mileage:\s*([\d,]+)|(\d{1,3}(?:,\d{3})*)\s*(?:miles?|mi)/i);
+              let mileage = "N/A";
+              if (mileageMatch) {
+                mileage = (mileageMatch[1] || mileageMatch[2]) + " miles";
+              }
+              
+              const stockMatch = fullText.match(/Stock Number:\s*([A-Z0-9]+)/i);
+              const stockNumber = stockMatch ? stockMatch[1] : `STOCK${index + 1}`;
+              
+              const transmissionMatch = fullText.match(/Transmission:\s*([A-Z]+)/i);
+              const transmission = transmissionMatch ? transmissionMatch[1] : "";
+              
+              const interiorMatch = fullText.match(/Interior Color:\s*([A-Z\s\/]+)/i);
+              const interiorColor = interiorMatch ? interiorMatch[1] : "";
+              
+              // Generate VIN from stock number
+              const vin = stockNumber.length >= 8 ? stockNumber : `VIN${stockNumber}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+              
+              const imgEl = htmlEl.querySelector("img") as HTMLImageElement;
+              const imageUrl = imgEl?.src || "";
+              
+              const linkEl = htmlEl.querySelector("a[href*='vehicle'],a[href*='inventory']") as HTMLAnchorElement;
+              const detailUrl = linkEl?.href || "";
+              
+              if (title && price !== "N/A") {
+                cars.push({ 
+                  vin, 
+                  title, 
+                  price, 
+                  mileage, 
+                  imageUrl,
+                  make,
+                  model,
+                  year,
+                  transmission,
+                  interiorColor,
+                  stockNumber,
+                  dealershipUrl: detailUrl || window.location.href
+                });
+              }
+            });
+          }
           
           return cars;
         });
@@ -337,6 +433,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       switch (format) {
+        case "facebook":
+          // Facebook Marketplace specific format
+          const facebookData = vehicles.map((vehicle: any) => {
+            // Clean price - remove commas and dollar signs for consistent formatting
+            const cleanPrice = vehicle.price?.replace(/[$,]/g, '') || '';
+            
+            // Create a detailed description
+            const description = [
+              vehicle.title || '',
+              vehicle.mileage ? `Mileage: ${vehicle.mileage}` : '',
+              vehicle.transmission ? `Transmission: ${vehicle.transmission}` : '',
+              vehicle.interiorColor ? `Interior: ${vehicle.interiorColor}` : '',
+              'Contact us for more details and to schedule a test drive!'
+            ].filter(Boolean).join('\n');
+            
+            return {
+              title: vehicle.title || 'Vehicle',
+              description: description,
+              price: cleanPrice,
+              condition: 'Used',
+              make: vehicle.make || '',
+              model: vehicle.model || '',
+              year: vehicle.year || '',
+              mileage: vehicle.mileage?.replace(/[^\d]/g, '') || '', // Extract just the number
+              vin: vehicle.vin || '',
+              images: vehicle.imageUrl || '',
+              availability: 'In Stock',
+              dealer_name: 'CarPlace Motors',
+              dealer_location: 'Addison, Texas',
+              contact_url: vehicle.dealershipUrl || ''
+            };
+          });
+          
+          const facebookParser = new Parser();
+          const facebookCsv = facebookParser.parse(facebookData);
+          res.setHeader('Content-Type', 'text/csv');
+          res.setHeader('Content-Disposition', 'attachment; filename="facebook_marketplace_import.csv"');
+          res.send(facebookCsv);
+          break;
+          
         case "csv":
           const parser = new Parser();
           const csv = parser.parse(exportData);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { X, FileText, Code, FileSpreadsheet } from "lucide-react";
+import { X, FileText, Code, FileSpreadsheet, Share2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,6 +22,12 @@ interface ExportFormat {
 }
 
 const formats: ExportFormat[] = [
+  {
+    id: "facebook",
+    name: "Facebook Marketplace",
+    icon: <Share2 className="text-blue-500" size={20} />,
+    color: "border-blue-300 hover:bg-blue-50",
+  },
   {
     id: "csv",
     name: "CSV",
@@ -55,7 +61,7 @@ const availableFields = [
 ];
 
 export default function ExportModal({ isOpen, onClose, selectedVehicleIds }: ExportModalProps) {
-  const [selectedFormat, setSelectedFormat] = useState("csv");
+  const [selectedFormat, setSelectedFormat] = useState("facebook");
   const [selectedFields, setSelectedFields] = useState(
     availableFields.filter(field => field.checked).map(field => field.id)
   );
