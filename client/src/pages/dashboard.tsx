@@ -53,12 +53,12 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <Sidebar stats={stats} recentJobs={recentJobs} />
+          <Sidebar stats={stats as any} recentJobs={recentJobs as any} />
           
           <div className="lg:col-span-3">
             <ScrapeForm />
             <ProgressSection progress={progress} />
-            <VehicleTable vehicles={vehicles} />
+            <VehicleTable vehicles={vehicles as any} />
           </div>
         </div>
       </div>

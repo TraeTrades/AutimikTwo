@@ -66,7 +66,21 @@ export class MemStorage implements IStorage {
     const vehicle: Vehicle = { 
       ...insertVehicle, 
       id, 
-      createdAt: new Date() 
+      createdAt: new Date(),
+      type: insertVehicle.type || null,
+      transmission: insertVehicle.transmission || null,
+      drivetrain: insertVehicle.drivetrain || null,
+      exteriorColor: insertVehicle.exteriorColor || null,
+      interiorColor: insertVehicle.interiorColor || null,
+      fuelType: insertVehicle.fuelType || null,
+      price: insertVehicle.price || null,
+      mileage: insertVehicle.mileage || null,
+      imageUrl: insertVehicle.imageUrl || null,
+      make: insertVehicle.make || null,
+      model: insertVehicle.model || null,
+      year: insertVehicle.year || null,
+      dealershipUrl: insertVehicle.dealershipUrl || null,
+      scrapingJobId: insertVehicle.scrapingJobId || null
     };
     this.vehicles.set(id, vehicle);
     return vehicle;
@@ -116,11 +130,17 @@ export class MemStorage implements IStorage {
       ...insertJob, 
       id, 
       createdAt: new Date(),
+      startedAt: null,
+      completedAt: null,
       progress: 0,
       vehiclesFound: 0,
       vehiclesProcessed: 0,
       errors: 0,
-      status: "pending"
+      status: "pending",
+      errorMessage: null,
+      maxVehicles: insertJob.maxVehicles || null,
+      filters: insertJob.filters || null,
+      options: insertJob.options || null
     };
     this.scrapingJobs.set(id, job);
     return job;

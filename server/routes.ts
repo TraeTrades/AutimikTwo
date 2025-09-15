@@ -46,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let browser;
     try {
       browser = await puppeteer.launch({
-        headless: "new",
+        headless: true,
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
       });
       
@@ -60,11 +60,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       while (vehicles.length < maxVehicles) {
         previousHeight = await page.evaluate("document.body.scrollHeight");
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
-        await page.waitForTimeout(1500);
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
         // Enhanced vehicle extraction
         const pageVehicles = await page.evaluate(() => {
-          const cars = [];
+          const cars: any[] = [];
           const selectors = [
             "[class*='vehicle']",
             "[class*='inventory']",
@@ -75,23 +75,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           selectors.forEach(selector => {
             document.querySelectorAll(selector).forEach((el) => {
+              const htmlEl = el as HTMLElement;
               // Extract VIN
-              const vin = el.innerText.match(/[A-HJ-NPR-Z0-9]{17}/)?.[0] || "N/A";
+              const vin = htmlEl.innerText.match(/[A-HJ-NPR-Z0-9]{17}/)?.[0] || "N/A";
               
               // Extract title
-              const titleEl = el.querySelector("h1,h2,h3,h4,[class*='title'],[class*='name']");
+              const titleEl = htmlEl.querySelector("h1,h2,h3,h4,[class*='title'],[class*='name']") as HTMLElement;
               const title = titleEl?.innerText || "Unknown Vehicle";
               
               // Extract price
-              const priceMatch = el.innerText.match(/\$[\d,]+/);
+              const priceMatch = htmlEl.innerText.match(/\$[\d,]+/);
               const price = priceMatch?.[0] || "N/A";
               
               // Extract mileage
-              const mileageMatch = el.innerText.match(/([\d,]+)\s?miles/i);
+              const mileageMatch = htmlEl.innerText.match(/([\d,]+)\s?miles/i);
               const mileage = mileageMatch?.[0] || "N/A";
               
               // Extract image
-              const imgEl = el.querySelector("img");
+              const imgEl = htmlEl.querySelector("img") as HTMLImageElement;
               const imageUrl = imgEl?.src || "";
               
               // Extract additional details
@@ -121,8 +122,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // Remove duplicates and add new vehicles
-        const existingVins = new Set(vehicles.map(v => v.vin));
-        const newVehicles = pageVehicles.filter(v => !existingVins.has(v.vin));
+        const existingVins: Set<string> = new Set(vehicles.map((v: any) => v.vin));
+        const newVehicles: any[] = pageVehicles.filter((v: any) => !existingVins.has(v.vin));
         vehicles.push(...newVehicles);
 
         // Update progress
@@ -172,15 +173,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       return vehicles;
 
-    } catch (error) {
+    } catch (error: any) {
       await storage.updateScrapingJob(jobId, {
         status: "failed",
         completedAt: new Date(),
-        errorMessage: error.message
+        errorMessage: error?.message || 'Unknown error'
       });
 
       broadcastProgress(jobId, {
-        error: error.message,
+        error: error?.message || 'Unknown error',
         statusMessage: "Scraping failed",
         completed: true
       });
@@ -200,8 +201,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const jobs = await storage.getAllScrapingJobs();
       res.json(jobs);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || 'Unknown error' });
     }
   });
 
@@ -211,8 +212,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 5;
       const jobs = await storage.getRecentJobs(limit);
       res.json(jobs);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || 'Unknown error' });
     }
   });
 
@@ -222,8 +223,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const job = await storage.getScrapingJob(req.params.id);
       if (!job) return res.status(404).json({ error: "Job not found" });
       res.json(job);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || 'Unknown error' });
     }
   });
 
@@ -237,8 +238,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       scrapeInventory(job.id, job.url, job.options).catch(console.error);
       
       res.json({ success: true, job });
-    } catch (error) {
-      res.status(400).json({ error: error.message });
+    } catch (error: any) {
+      res.status(400).json({ error: error?.message || 'Unknown error' });
     }
   });
 
@@ -258,8 +259,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       res.json({ success: true, job });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || 'Unknown error' });
     }
   });
 
@@ -272,8 +273,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         jobId as string
       );
       res.json(vehicles);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || 'Unknown error' });
     }
   });
 
@@ -282,8 +283,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const vehicles = await storage.getVehiclesByJobId(req.params.id);
       res.json(vehicles);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || 'Unknown error' });
     }
   });
 
@@ -295,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let vehicles;
       if (vehicleIds && vehicleIds.length > 0) {
         vehicles = await Promise.all(
-          vehicleIds.map(id => storage.getVehicle(id))
+          vehicleIds.map((id: string) => storage.getVehicle(id))
         );
         vehicles = vehicles.filter(Boolean);
       } else {
@@ -303,9 +304,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Filter fields if specified
-      const exportData = vehicles.map(vehicle => {
+      const exportData = vehicles.map((vehicle: any) => {
         if (fields && fields.length > 0) {
-          return fields.reduce((obj, field) => {
+          return fields.reduce((obj: any, field: string) => {
             obj[field] = vehicle[field];
             return obj;
           }, {});
@@ -342,8 +343,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         default:
           res.status(400).json({ error: "Unsupported format" });
       }
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || 'Unknown error' });
     }
   });
 
@@ -365,8 +366,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalJobs,
         completedJobs
       });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || 'Unknown error' });
     }
   });
 

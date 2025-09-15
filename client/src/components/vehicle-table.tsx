@@ -33,14 +33,14 @@ export default function VehicleTable({ vehicles = [] }: VehicleTableProps) {
     enabled: !!searchQuery,
   });
 
-  const displayVehicles = searchQuery ? searchResults || [] : vehicles;
+  const displayVehicles = searchQuery ? (searchResults as Vehicle[] || []) : (vehicles || []);
   const totalPages = Math.ceil(displayVehicles.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedVehicles = displayVehicles.slice(startIndex, startIndex + itemsPerPage);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedVehicles(new Set(paginatedVehicles.map(v => v.id)));
+      setSelectedVehicles(new Set(paginatedVehicles.map((v: Vehicle) => v.id)));
     } else {
       setSelectedVehicles(new Set());
     }
@@ -171,7 +171,7 @@ export default function VehicleTable({ vehicles = [] }: VehicleTableProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedVehicles.map((vehicle) => (
+                {paginatedVehicles.map((vehicle: Vehicle) => (
                   <TableRow key={vehicle.id} className="table-hover-row" data-testid={`vehicle-row-${vehicle.id}`}>
                     <TableCell>
                       <Checkbox
@@ -206,12 +206,12 @@ export default function VehicleTable({ vehicles = [] }: VehicleTableProps) {
                     </TableCell>
                     <TableCell>
                       <span className="font-semibold text-foreground" data-testid={`price-vehicle-${vehicle.id}`}>
-                        {formatPrice(vehicle.price)}
+                        {formatPrice(vehicle.price || '')}
                       </span>
                     </TableCell>
                     <TableCell>
                       <span className="text-foreground" data-testid={`mileage-vehicle-${vehicle.id}`}>
-                        {formatMileage(vehicle.mileage)}
+                        {formatMileage(vehicle.mileage || '')}
                       </span>
                     </TableCell>
                     <TableCell>
