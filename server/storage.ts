@@ -1,5 +1,6 @@
-import { type User, type InsertUser, type Vehicle, type InsertVehicle, type ScrapingJob, type InsertScrapingJob } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { type User, type InsertUser, type Vehicle, type InsertVehicle, type ScrapingJob, type InsertScrapingJob, users, vehicles, scrapingJobs } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, like, or, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -23,146 +24,107 @@ export interface IStorage {
   getRecentJobs(limit?: number): Promise<ScrapingJob[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private vehicles: Map<string, Vehicle>;
-  private scrapingJobs: Map<string, ScrapingJob>;
-
-  constructor() {
-    this.users = new Map();
-    this.vehicles = new Map();
-    this.scrapingJobs = new Map();
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async getVehicle(id: string): Promise<Vehicle | undefined> {
-    return this.vehicles.get(id);
+    const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, id));
+    return vehicle;
   }
 
   async getVehiclesByJobId(jobId: string): Promise<Vehicle[]> {
-    return Array.from(this.vehicles.values()).filter(
-      (vehicle) => vehicle.scrapingJobId === jobId
-    );
+    return await db.select().from(vehicles).where(eq(vehicles.scrapingJobId, jobId));
   }
 
   async createVehicle(insertVehicle: InsertVehicle): Promise<Vehicle> {
-    const id = randomUUID();
-    const vehicle: Vehicle = { 
-      ...insertVehicle, 
-      id, 
-      createdAt: new Date(),
-      type: insertVehicle.type || null,
-      transmission: insertVehicle.transmission || null,
-      drivetrain: insertVehicle.drivetrain || null,
-      exteriorColor: insertVehicle.exteriorColor || null,
-      interiorColor: insertVehicle.interiorColor || null,
-      fuelType: insertVehicle.fuelType || null,
-      price: insertVehicle.price || null,
-      mileage: insertVehicle.mileage || null,
-      imageUrl: insertVehicle.imageUrl || null,
-      make: insertVehicle.make || null,
-      model: insertVehicle.model || null,
-      year: insertVehicle.year || null,
-      dealershipUrl: insertVehicle.dealershipUrl || null,
-      scrapingJobId: insertVehicle.scrapingJobId || null
-    };
-    this.vehicles.set(id, vehicle);
+    const [vehicle] = await db.insert(vehicles).values(insertVehicle).returning();
     return vehicle;
   }
 
   async updateVehicle(id: string, updates: Partial<Vehicle>): Promise<Vehicle | undefined> {
-    const vehicle = this.vehicles.get(id);
-    if (!vehicle) return undefined;
-    
-    const updatedVehicle = { ...vehicle, ...updates };
-    this.vehicles.set(id, updatedVehicle);
+    const [updatedVehicle] = await db
+      .update(vehicles)
+      .set(updates)
+      .where(eq(vehicles.id, id))
+      .returning();
     return updatedVehicle;
   }
 
   async deleteVehicle(id: string): Promise<boolean> {
-    return this.vehicles.delete(id);
+    const result = await db.delete(vehicles).where(eq(vehicles.id, id));
+    return (result.rowCount || 0) > 0;
   }
 
   async searchVehicles(query: string, jobId?: string): Promise<Vehicle[]> {
-    const vehicles = Array.from(this.vehicles.values());
-    const filtered = jobId ? vehicles.filter(v => v.scrapingJobId === jobId) : vehicles;
+    const conditions = [];
     
-    if (!query) return filtered;
+    if (jobId) {
+      conditions.push(eq(vehicles.scrapingJobId, jobId));
+    }
     
-    const lowerQuery = query.toLowerCase();
-    return filtered.filter(vehicle => 
-      vehicle.title.toLowerCase().includes(lowerQuery) ||
-      vehicle.vin.toLowerCase().includes(lowerQuery) ||
-      vehicle.make?.toLowerCase().includes(lowerQuery) ||
-      vehicle.model?.toLowerCase().includes(lowerQuery)
-    );
+    if (query) {
+      const lowerQuery = query.toLowerCase();
+      conditions.push(
+        or(
+          like(vehicles.title, `%${lowerQuery}%`),
+          like(vehicles.vin, `%${lowerQuery}%`),
+          like(vehicles.make, `%${lowerQuery}%`),
+          like(vehicles.model, `%${lowerQuery}%`)
+        )
+      );
+    }
+    
+    if (conditions.length > 0) {
+      return await db.select().from(vehicles).where(and(...conditions));
+    }
+    
+    return await db.select().from(vehicles);
   }
 
   async getScrapingJob(id: string): Promise<ScrapingJob | undefined> {
-    return this.scrapingJobs.get(id);
+    const [job] = await db.select().from(scrapingJobs).where(eq(scrapingJobs.id, id));
+    return job;
   }
 
   async getAllScrapingJobs(): Promise<ScrapingJob[]> {
-    return Array.from(this.scrapingJobs.values()).sort(
-      (a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
-    );
+    return await db.select().from(scrapingJobs).orderBy(desc(scrapingJobs.createdAt));
   }
 
   async createScrapingJob(insertJob: InsertScrapingJob): Promise<ScrapingJob> {
-    const id = randomUUID();
-    const job: ScrapingJob = { 
-      ...insertJob, 
-      id, 
-      createdAt: new Date(),
-      startedAt: null,
-      completedAt: null,
-      progress: 0,
-      vehiclesFound: 0,
-      vehiclesProcessed: 0,
-      errors: 0,
-      status: "pending",
-      errorMessage: null,
-      maxVehicles: insertJob.maxVehicles || null,
-      filters: insertJob.filters || null,
-      options: insertJob.options || null
-    };
-    this.scrapingJobs.set(id, job);
+    const [job] = await db.insert(scrapingJobs).values(insertJob).returning();
     return job;
   }
 
   async updateScrapingJob(id: string, updates: Partial<ScrapingJob>): Promise<ScrapingJob | undefined> {
-    const job = this.scrapingJobs.get(id);
-    if (!job) return undefined;
-    
-    const updatedJob = { ...job, ...updates };
-    this.scrapingJobs.set(id, updatedJob);
+    const [updatedJob] = await db
+      .update(scrapingJobs)
+      .set(updates)
+      .where(eq(scrapingJobs.id, id))
+      .returning();
     return updatedJob;
   }
 
   async deleteScrapingJob(id: string): Promise<boolean> {
-    return this.scrapingJobs.delete(id);
+    const result = await db.delete(scrapingJobs).where(eq(scrapingJobs.id, id));
+    return (result.rowCount || 0) > 0;
   }
 
   async getRecentJobs(limit: number = 10): Promise<ScrapingJob[]> {
-    const jobs = await this.getAllScrapingJobs();
-    return jobs.slice(0, limit);
+    return await db.select().from(scrapingJobs).orderBy(desc(scrapingJobs.createdAt)).limit(limit);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
