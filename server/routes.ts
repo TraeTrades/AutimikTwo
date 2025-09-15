@@ -73,7 +73,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const page = await browser.newPage();
+      console.log(`Navigating to: ${url}`);
       await page.goto(url, { waitUntil: "networkidle2" });
+      console.log(`Page loaded successfully: ${await page.title()}`);
 
       let previousHeight;
       let vehicles = [];
@@ -85,159 +87,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await new Promise(resolve => setTimeout(resolve, 1500));
 
         // CarPlace Motors specific vehicle extraction
+        console.log(`Attempting to extract vehicles on iteration ${vehicles.length}...`);
+        
+        // First, let's check what the page actually contains
+        const pageInfo = await page.evaluate(() => {
+          return {
+            url: window.location.href,
+            title: document.title,
+            bodyText: document.body.innerText.substring(0, 500), // First 500 chars
+            vehicleBlocksFound: document.querySelectorAll('div[class*="vehicle"], div[class*="listing"], div[class*="inventory-item"], .inventory-item, [data-test*="vehicle"]').length,
+            allLinksCount: document.querySelectorAll('a').length,
+            vehicleLinksCount: Array.from(document.querySelectorAll('a')).filter(link => {
+              const text = link.textContent || '';
+              return text.match(/\d{4}\s+[A-Z]+.*?[A-Z]+/i) && text.length > 10;
+            }).length
+          };
+        });
+        
+        console.log(`Page info:`, JSON.stringify(pageInfo, null, 2));
+        
         const pageVehicles = await page.evaluate(() => {
           const cars: any[] = [];
           
-          // Look for vehicle blocks - CarPlace Motors uses specific structure
-          const vehicleBlocks = document.querySelectorAll('div[class*="vehicle"], div[class*="listing"], div[class*="inventory-item"], .inventory-item, [data-test*="vehicle"]');
+          // More comprehensive approach for CarPlace Motors
+          // Look for all links that might contain vehicle information
+          const allLinks = Array.from(document.querySelectorAll('a'));
           
-          if (vehicleBlocks.length === 0) {
-            // Fallback: look for links that contain vehicle information
-            const vehicleLinks = Array.from(document.querySelectorAll('a')).filter(link => {
-              const text = link.textContent || '';
-              return text.match(/\d{4}\s+[A-Z]+.*?[A-Z]+/i) && text.length > 10; // Matches "YEAR MAKE MODEL" pattern
-            });
+          // Filter links that look like vehicle links
+          const vehicleLinks = allLinks.filter(link => {
+            const href = link.href || '';
+            const text = link.textContent || '';
             
-            vehicleLinks.forEach((link, index) => {
-              const linkEl = link as HTMLAnchorElement;
-              const parentEl = linkEl.closest('div') || linkEl.parentElement;
-              if (!parentEl) return;
+            // Look for links that contain vehicle information in the URL or text
+            return (
+              href.includes('/used-vehicle-inventory/') ||
+              href.includes('/vehicle/') ||
+              href.includes('/inventory/') ||
+              text.match(/\d{4}.*?[A-Z]{2,}.*?[A-Z]{2,}/i) // Year + Make + Model pattern
+            );
+          });
+          
+          vehicleLinks.forEach((link, index) => {
+            const linkEl = link as HTMLAnchorElement;
+            const href = linkEl.href || '';
+            const linkText = linkEl.textContent || '';
+            
+            // Skip if this doesn't look like a vehicle link
+            if (!linkText.match(/\d{4}/)) return;
+            
+            // Find the container that has all the vehicle info
+            let container = linkEl.parentElement;
+            
+            // Try to find a better container by going up the DOM tree
+            for (let i = 0; i < 5; i++) {
+              if (!container) break;
               
-              const fullText = parentEl.innerText || '';
-              
-              // Extract title from the link text
-              const title = linkEl.innerText.trim();
-              if (!title || title.length < 10) return;
-              
-              // Extract year, make, model from title
-              const titleMatch = title.match(/(\d{4})\s+([A-Z\-]+)\s+(.+)/i);
-              const year = titleMatch ? parseInt(titleMatch[1]) : null;
-              const make = titleMatch ? titleMatch[2] : '';
-              let model = titleMatch ? titleMatch[3] : '';
-              
-              // Clean up model (remove trim levels)
-              model = model.split(/\s+(SEDAN|COUPE|SUV|CONVERTIBLE|WAGON|HATCHBACK|PICKUP)/i)[0];
-              
-              // Extract price
-              const priceMatch = fullText.match(/Price:\s*\$[\d,]+|\$[\d,]+/);
-              const price = priceMatch ? priceMatch[0].replace(/Price:\s*/, '') : "N/A";
-              
-              // Extract mileage
-              const mileageMatch = fullText.match(/Mileage:\s*([\d,]+)|(\d{1,3}(?:,\d{3})*)\s*(?:miles?|mi)/i);
-              let mileage = "N/A";
-              if (mileageMatch) {
-                mileage = (mileageMatch[1] || mileageMatch[2]) + " miles";
+              const containerText = container.innerText || '';
+              // If this container has price info, it's likely the right one
+              if (containerText.match(/\$[\d,]+/) && containerText.match(/\d{4}/)) {
+                break;
               }
-              
-              // Extract stock number
-              const stockMatch = fullText.match(/Stock Number:\s*([A-Z0-9]+)/i);
-              const stockNumber = stockMatch ? stockMatch[1] : `STOCK${index + 1}`;
-              
-              // Extract transmission
-              const transmissionMatch = fullText.match(/Transmission:\s*([A-Z]+)/i);
-              const transmission = transmissionMatch ? transmissionMatch[1] : "";
-              
-              // Extract interior color
-              const interiorMatch = fullText.match(/Interior Color:\s*([A-Z\s\/]+)/i);
-              const interiorColor = interiorMatch ? interiorMatch[1] : "";
-              
-              // Generate VIN from stock number (this is a fallback)
-              const vin = stockNumber.length >= 8 ? stockNumber : `VIN${stockNumber}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-              
-              // Extract image
-              const imgEl = parentEl.querySelector("img") as HTMLImageElement;
-              const imageUrl = imgEl?.src || "";
-              
-              // Get link URL for more details
-              const detailUrl = linkEl.href || "";
-              
-              if (title && price !== "N/A") {
-                cars.push({ 
-                  vin, 
-                  title, 
-                  price, 
-                  mileage, 
-                  imageUrl,
-                  make,
-                  model,
-                  year,
-                  transmission,
-                  interiorColor,
-                  stockNumber,
-                  dealershipUrl: detailUrl || window.location.href
-                });
-              }
-            });
-          } else {
-            // Use the found vehicle blocks
-            vehicleBlocks.forEach((block, index) => {
-              const htmlEl = block as HTMLElement;
-              const fullText = htmlEl.innerText || '';
-              
-              // Extract title
-              const titleEl = htmlEl.querySelector("h1,h2,h3,h4,a[href*='vehicle'],a[href*='inventory']") as HTMLElement;
-              const title = titleEl?.innerText.trim() || "Unknown Vehicle";
-              
-              if (!title || title === "Unknown Vehicle") return;
-              
-              // Parse title for vehicle details
-              const titleMatch = title.match(/(\d{4})\s+([A-Z\-]+)\s+(.+)/i);
-              const year = titleMatch ? parseInt(titleMatch[1]) : null;
-              const make = titleMatch ? titleMatch[2] : '';
-              let model = titleMatch ? titleMatch[3] : '';
-              
-              // Clean up model
-              model = model.split(/\s+(SEDAN|COUPE|SUV|CONVERTIBLE|WAGON|HATCHBACK|PICKUP)/i)[0];
-              
-              // Extract other details
-              const priceMatch = fullText.match(/Price:\s*\$[\d,]+|\$[\d,]+/);
-              const price = priceMatch ? priceMatch[0].replace(/Price:\s*/, '') : "N/A";
-              
-              const mileageMatch = fullText.match(/Mileage:\s*([\d,]+)|(\d{1,3}(?:,\d{3})*)\s*(?:miles?|mi)/i);
-              let mileage = "N/A";
-              if (mileageMatch) {
-                mileage = (mileageMatch[1] || mileageMatch[2]) + " miles";
-              }
-              
-              const stockMatch = fullText.match(/Stock Number:\s*([A-Z0-9]+)/i);
-              const stockNumber = stockMatch ? stockMatch[1] : `STOCK${index + 1}`;
-              
-              const transmissionMatch = fullText.match(/Transmission:\s*([A-Z]+)/i);
-              const transmission = transmissionMatch ? transmissionMatch[1] : "";
-              
-              const interiorMatch = fullText.match(/Interior Color:\s*([A-Z\s\/]+)/i);
-              const interiorColor = interiorMatch ? interiorMatch[1] : "";
-              
-              // Generate VIN from stock number
-              const vin = stockNumber.length >= 8 ? stockNumber : `VIN${stockNumber}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-              
-              const imgEl = htmlEl.querySelector("img") as HTMLImageElement;
-              const imageUrl = imgEl?.src || "";
-              
-              const linkEl = htmlEl.querySelector("a[href*='vehicle'],a[href*='inventory']") as HTMLAnchorElement;
-              const detailUrl = linkEl?.href || "";
-              
-              if (title && price !== "N/A") {
-                cars.push({ 
-                  vin, 
-                  title, 
-                  price, 
-                  mileage, 
-                  imageUrl,
-                  make,
-                  model,
-                  year,
-                  transmission,
-                  interiorColor,
-                  stockNumber,
-                  dealershipUrl: detailUrl || window.location.href
-                });
-              }
-            });
-          }
+              container = container.parentElement;
+            }
+            
+            if (!container) return;
+            
+            const fullText = container.innerText || '';
+            
+            // Extract title - prefer the link text if it looks like a vehicle title
+            let title = linkText.trim();
+            if (!title.match(/\d{4}.*[A-Z]/i)) {
+              // Look for a better title in the container
+              const titleMatch = fullText.match(/(\d{4}\s+[A-Z\-]+\s+[^\n]+)/i);
+              title = titleMatch ? titleMatch[1] : linkText;
+            }
+            
+            if (!title || title.length < 10) return;
+            
+            // Parse year, make, model from title
+            const titleMatch = title.match(/(\d{4})\s+([A-Z\-]+)\s+(.+)/i);
+            const year = titleMatch ? parseInt(titleMatch[1]) : null;
+            const make = titleMatch ? titleMatch[2].replace(/-/g, ' ') : '';
+            let model = titleMatch ? titleMatch[3] : '';
+            
+            // Clean up model name
+            model = model.split(/\s+(SEDAN|COUPE|SUV|CONVERTIBLE|WAGON|HATCHBACK|PICKUP|SPORT UTILITY)/i)[0];
+            model = model.replace(/\\n.*/, '').trim(); // Remove any line breaks and content after
+            
+            // Extract price - look for dollar amounts
+            const priceMatches = fullText.match(/\$[\d,]+/g);
+            const price = priceMatches ? priceMatches[0] : "N/A";
+            
+            // Extract mileage - look for mileage patterns
+            const mileageMatch = fullText.match(/(?:Mileage:?\s*)?(\d{1,3}(?:,\d{3})*)\s*(?:miles?|mi)?/i);
+            let mileage = "N/A";
+            if (mileageMatch && parseInt(mileageMatch[1].replace(/,/g, '')) > 100) {
+              mileage = mileageMatch[1] + " miles";
+            }
+            
+            // Extract stock number
+            const stockMatch = fullText.match(/(?:Stock Number|Stock|VIN):?\s*([A-Z0-9]+)/i);
+            const stockNumber = stockMatch ? stockMatch[1] : `AUTO${Date.now()}${index}`;
+            
+            // Extract transmission
+            const transmissionMatch = fullText.match(/(?:Transmission|Trans):?\s*([A-Z]+)/i);
+            const transmission = transmissionMatch ? transmissionMatch[1] : "AUTOMATIC";
+            
+            // Extract interior color
+            const interiorMatch = fullText.match(/(?:Interior Color|Interior):?\s*([A-Z\s\/]+)/i);
+            const interiorColor = interiorMatch ? interiorMatch[1].trim() : "";
+            
+            // Generate a VIN if we don't have one
+            let vin = stockNumber;
+            if (stockNumber.length < 8) {
+              vin = `VIN${year}${make.substring(0,3).toUpperCase()}${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+            }
+            
+            // Find image
+            const imgEl = container.querySelector("img") as HTMLImageElement;
+            const imageUrl = imgEl?.src || "";
+            
+            // Use the vehicle detail URL
+            const detailUrl = href;
+            
+            // Only add if we have minimum required info
+            if (title && price !== "N/A" && year && make) {
+              cars.push({ 
+                vin, 
+                title: title.trim(), 
+                price, 
+                mileage, 
+                imageUrl,
+                make: make.trim(),
+                model: model.trim(),
+                year,
+                transmission,
+                interiorColor,
+                stockNumber,
+                dealershipUrl: detailUrl || window.location.href
+              });
+            }
+          });
           
           return cars;
         });
+        
+        console.log(`Extracted ${pageVehicles.length} vehicles from current page`);
 
         // Remove duplicates and add new vehicles
         const existingVins: Set<string> = new Set(vehicles.map((v: any) => v.vin));
