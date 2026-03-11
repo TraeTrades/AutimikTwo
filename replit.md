@@ -43,6 +43,13 @@ Preferred communication style: Simple, everyday language.
 - **Puppeteer**: Headless Chrome automation for dynamic website scraping
 - **Browser Management**: Automated browser lifecycle with memory optimization
 
+#### Data Import Capabilities
+- **CSV Import**: Drag-and-drop CSV upload with intelligent column auto-mapping
+- **Smart Column Detection**: Fuzzy header matching + sample value analysis for auto-mapping
+- **CRM Mapping Memory**: Saves column mappings per CRM/DMS source for reuse
+- **Upsert Logic**: Updates existing vehicles by stock number or inserts new ones
+- **DMS Support**: Handles common DMS formats (CDK, Reynolds & Reynolds, DealerSocket, VAuto)
+
 #### Data Export Capabilities
 - **CSV Export**: json2csv library for structured data export
 - **Excel Export**: xlsx library for spreadsheet generation

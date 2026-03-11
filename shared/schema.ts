@@ -11,7 +11,7 @@ export const users = pgTable("users", {
 
 export const vehicles = pgTable("vehicles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  vin: varchar("vin", { length: 17 }).notNull(),
+  vin: text("vin").notNull(),
   title: text("title").notNull(),
   price: text("price"),
   mileage: text("mileage"),
@@ -20,11 +20,13 @@ export const vehicles = pgTable("vehicles", {
   model: text("model"),
   year: integer("year"),
   type: text("type"),
+  trim: text("trim"),
   transmission: text("transmission"),
   drivetrain: text("drivetrain"),
   exteriorColor: text("exterior_color"),
   interiorColor: text("interior_color"),
   fuelType: text("fuel_type"),
+  stockNumber: text("stock_number"),
   dealershipUrl: text("dealership_url"),
   scrapingJobId: varchar("scraping_job_id").references(() => scrapingJobs.id),
   createdAt: timestamp("created_at").defaultNow(),

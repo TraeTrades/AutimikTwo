@@ -6,6 +6,7 @@ import puppeteer from "puppeteer-core";
 import { Parser } from "json2csv";
 import * as XLSX from "xlsx";
 import { execSync } from "child_process";
+import { registerCsvImportRoutes } from "./csv-import";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -523,6 +524,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error?.message || 'Unknown error' });
     }
   });
+
+  registerCsvImportRoutes(app);
 
   return httpServer;
 }
