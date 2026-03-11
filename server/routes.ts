@@ -2,11 +2,15 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertScrapingJobSchema, insertVehicleSchema } from "@shared/schema";
+import puppeteerExtra from "puppeteer-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import puppeteer from "puppeteer-core";
 import { Parser } from "json2csv";
 import * as XLSX from "xlsx";
 import { execSync } from "child_process";
 import { registerCsvImportRoutes } from "./csv-import";
+
+puppeteerExtra.use(StealthPlugin());
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -56,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || getChromiumPath();
       console.log(`Using Chromium at: ${executablePath}`);
       
-      browser = await puppeteer.launch({
+      browser = await puppeteerExtra.launch({
         headless: true,
         args: [
           "--no-sandbox",
@@ -68,15 +72,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "--disable-gpu",
           "--disable-background-timer-throttling",
           "--disable-backgrounding-occluded-windows",
-          "--disable-renderer-backgrounding"
+          "--disable-renderer-backgrounding",
+          "--disable-blink-features=AutomationControlled",
+          "--disable-features=IsolateOrigins,site-per-process",
+          "--window-size=1920,1080",
         ],
         executablePath,
       });
       
       const page = await browser.newPage();
+
+      // Set realistic viewport and user agent to bypass bot detection
+      await page.setViewport({ width: 1920, height: 1080 });
+      await page.setUserAgent(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+      );
+
+      // Hide webdriver fingerprint before any navigation
+      await page.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+        Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+        Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+        (window as any).chrome = { runtime: {} };
+      });
+
+      // Set extra headers to look like a real browser
+      await page.setExtraHTTPHeaders({
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "Upgrade-Insecure-Requests": "1",
+      });
+
+      // First visit the home page to warm up Cloudflare session
+      const baseUrl = new URL(url).origin;
+      console.log(`Warming up session via home page: ${baseUrl}`);
+      try {
+        await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      } catch (e) {
+        console.log("Home page warmup failed, continuing...");
+      }
+
       console.log(`Navigating to: ${url}`);
-      await page.goto(url, { waitUntil: "networkidle2" });
-      console.log(`Page loaded successfully: ${await page.title()}`);
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+
+      // Handle Cloudflare challenge - wait up to 60s for it to clear
+      let attempts = 0;
+      while (attempts < 12) {
+        const title = await page.title();
+        if (!title.includes("Just a moment") && !title.includes("Checking your browser") && !title.includes("Attention Required")) break;
+        console.log(`Cloudflare challenge detected, waiting... (attempt ${attempts + 1}/12)`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        attempts++;
+      }
+
+      const finalTitle = await page.title();
+      console.log(`Page loaded successfully: ${finalTitle}`);
+      
+      if (finalTitle.includes("Just a moment") || finalTitle.includes("Checking your browser")) {
+        throw new Error("Cloudflare challenge could not be bypassed. The website may be blocking automated access.");
+      }
 
       let previousHeight;
       let vehicles = [];
@@ -85,27 +143,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       while (vehicles.length < maxVehicles) {
         previousHeight = await page.evaluate("document.body.scrollHeight");
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // CarPlace Motors specific vehicle extraction
-        console.log(`Attempting to extract vehicles on iteration ${vehicles.length}...`);
-        
-        // First, let's check what the page actually contains
-        const pageInfo = await page.evaluate(() => {
-          return {
-            url: window.location.href,
-            title: document.title,
-            bodyText: document.body.innerText.substring(0, 500), // First 500 chars
-            vehicleBlocksFound: document.querySelectorAll('div[class*="vehicle"], div[class*="listing"], div[class*="inventory-item"], .inventory-item, [data-test*="vehicle"]').length,
-            allLinksCount: document.querySelectorAll('a').length,
-            vehicleLinksCount: Array.from(document.querySelectorAll('a')).filter(link => {
-              const text = link.textContent || '';
-              return text.match(/\d{4}\s+[A-Z]+.*?[A-Z]+/i) && text.length > 10;
-            }).length
-          };
+        // Force lazy-loaded images to load by triggering their data-src
+        await page.evaluate(() => {
+          document.querySelectorAll('img[data-src]').forEach((img: any) => {
+            if (!img.src || img.src === window.location.href) img.src = img.getAttribute('data-src');
+          });
+          document.querySelectorAll('img[data-lazy-src]').forEach((img: any) => {
+            if (!img.src || img.src === window.location.href) img.src = img.getAttribute('data-lazy-src');
+          });
+          document.querySelectorAll('img[data-original]').forEach((img: any) => {
+            if (!img.src || img.src === window.location.href) img.src = img.getAttribute('data-original');
+          });
         });
-        
-        console.log(`Page info:`, JSON.stringify(pageInfo, null, 2));
+
+        // Small additional wait for forced images to load
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         const pageVehicles = await page.evaluate(() => {
           const cars: any[] = [];
@@ -204,9 +258,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
               vin = `VIN${year}${make.substring(0,3).toUpperCase()}${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
             }
             
-            // Find image
-            const imgEl = container.querySelector("img") as HTMLImageElement;
-            const imageUrl = imgEl?.src || "";
+            // Find vehicle image - skip badges, SVGs, and CarGurus rating icons
+            const allImgs = Array.from(container.querySelectorAll('img'));
+            let imageUrl = "";
+            
+            for (const img of allImgs as HTMLImageElement[]) {
+              // Check all possible image src locations (including lazy-loaded)
+              const src = (img as any).getAttribute('data-src') || 
+                          (img as any).getAttribute('data-lazy-src') || 
+                          (img as any).getAttribute('data-original') || 
+                          (img as any).getAttribute('data-img') ||
+                          img.src || '';
+              
+              if (!src || src.startsWith('data:')) continue; // Skip empty or base64
+              if (src.endsWith('.svg')) continue;             // Skip SVG badges
+              if (src.includes('cargurus.com')) continue;     // Skip CarGurus badges
+              if (src.includes('placeholder')) continue;       // Skip placeholders
+              if (src.includes('spinner') || src.includes('loading')) continue;
+              if (img.naturalWidth > 0 && img.naturalWidth < 80) continue; // Skip tiny icons
+              
+              imageUrl = src;
+              break;
+            }
             
             // Use the vehicle detail URL
             const detailUrl = href;
