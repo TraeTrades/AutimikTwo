@@ -1,0 +1,73 @@
+I need you to build a Chrome browser extension inside this project. Create a folder called `extension/` at the root level with these files:
+
+**extension/manifest.json** — Manifest V3 Chrome extension. Permissions: storage, activeTab, scripting. Host permissions: https://www.facebook.com/*. Background service worker at background/service-worker.js. Content script content.js that runs on https://www.facebook.com/marketplace/create/vehicle* at document_idle. Action popup at popup/popup.html.
+
+**extension/background/service-worker.js** — Handles these chrome.runtime.onMessage types:
+- SAVE_INVENTORY: saves vehicles array to chrome.storage.local key autimik_inventory
+- GET_INVENTORY: returns autimik_inventory from storage
+- LIST_VEHICLE: forwards vehicle to active tab via sendMessage with type FILL_FORM
+- MARK_LISTED: saves vehicle ID with timestamp to autimik_listed in storage
+- GET_LISTED: returns autimik_listed from storage
+- CLEAR_INVENTORY: removes autimik_inventory and autimik_listed from storage
+
+**extension/content.js** — Injected into the FB Marketplace vehicle create page. Listens for FILL_FORM message. Uses the React input trick (native value setter + input/change events) to fill these aria-label selectors: input[aria-label="Price"], input[aria-label="Year"], input[aria-label="Make"], input[aria-label="Model"], input[aria-label="Mileage"], textarea[aria-label="Description"]. For dropdowns (Condition, Fuel type, Transmission, Drivetrain, Exterior color, Interior color, Vehicle type): click the aria-label element to open it, wait 400ms, then click the matching option text. For photos: fetch each image URL, convert to Blob, create File objects, inject into input[type="file"][accept*="image"] via DataTransfer. Build a description from vehicle fields with line breaks. All operations async with waitFor() helper that uses MutationObserver with 12 second timeout.
+
+**extension/popup/popup.html** — 360px wide popup. Dark theme (#0a0f1e background). Has three views: upload view (drag-drop CSV area, hidden file input), inventory list view (search bar, scrollable vehicle cards), and wrong-page warning view (shown when not on FB Marketplace). Shows vehicle thumbnail, year/make/model, price, mileage. Each vehicle card has a "List It" button. Listed vehicles show a green "Listed" badge and are dimmed. Status bar at bottom shows current state. Toast notifications for success/error.
+
+**extension/popup/popup.js** — Parses CSV files in the browser using manual header splitting and row parsing (no external libraries). Auto-maps columns using these aliases:
+- year: year, yr, model_year
+- make: make, manufacturer, brand  
+- model: model, model_name
+- trim: trim, trim_level, series
+- vin: vin, vin#, vin_number
+- stockNumber: stock, stock#, stock_number, unit
+- price: price, selling_price, list_price, msrp, internet_price
+- mileage: mileage, miles, odometer
+- exteriorColor: color, exterior_color, ext_color, colour
+- interiorColor: interior, interior_color, int_color
+- transmission: transmission, trans
+- drivetrain: drivetrain, drive_type, driveline
+- fuelType: fuel, fuel_type
+- bodyStyle: body, body_style, body_type, vehicle_type
+- imageUrl: image, image_url, photo, photo_url, picture, img
+- imageUrls: photos, image_urls, photo_urls (split by | or ;)
+
+On load: check chrome.storage.local for existing inventory and show it. If no inventory, show upload view. Check if current tab is facebook.com/marketplace/create/vehicle — if not, show the wrong-page warning in the inventory list view with a link to open that URL. 
+
+When user clicks "List It": send LIST_VEHICLE message to background, set status to "Filling form...", on success mark vehicle as listed and show green toast "Listed! ✓". On error show red toast.
+
+Search filters the vehicle list in real time. Clear button removes all inventory from storage and resets to upload view.
+
+Do not use any external npm packages or fetch calls in the extension — it must work completely standalone with no backend.
+
+Step 3 — After Replit builds it, paste this follow-up:
+Now update extension/content.js with one important fix: the waitFor() function should also check for elements using fallback selectors if the aria-label ones fail. Add these fallbacks:
+- For Price: also try input[placeholder*="Price"], input[name*="price"]
+- For Year: also try input[placeholder*="Year"]  
+- For Make: also try input[placeholder*="Make"]
+- For Model: also try input[placeholder*="Model"]
+- For Mileage: also try input[placeholder*="Mileage"], input[placeholder*="miles"]
+- For Description: also try div[role="textbox"][aria-label*="escription"], div[contenteditable="true"]
+
+Also add a 10-second delay between the form fill completing and any further actions, and log every step to console with [Autimik] prefix so I can debug in DevTools.
+
+Step 4 — Then paste this to load it in Chrome:
+Add a file extension/INSTALL.md with these exact instructions:
+
+# How to install the Autimik extension in Chrome
+
+1. Download this extension/ folder to your computer
+2. Open Chrome and go to chrome://extensions
+3. Turn on "Developer mode" (toggle in top right)
+4. Click "Load unpacked"
+5. Select the extension/ folder you downloaded
+6. The Autimik icon will appear in your Chrome toolbar
+
+# How to test it
+1. Go to your dealership's inventory export and download a CSV
+2. Click the Autimik icon in Chrome
+3. Drop the CSV file into the upload area
+4. Open a new tab to facebook.com/marketplace/create/vehicle
+5. Click the Autimik icon again
+6. Click "List It" on any vehicle
+7. Watch the form fill automatically
