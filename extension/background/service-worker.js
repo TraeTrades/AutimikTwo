@@ -17,26 +17,52 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     case "LIST_VEHICLE": {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (!tabs[0]) {
-          sendResponse({ success: false, error: "No active tab found" });
-          return;
-        }
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          { type: "FILL_FORM", payload: payload.vehicle },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              sendResponse({
-                success: false,
-                error: chrome.runtime.lastError.message ||
-                  "Could not connect to the page. Make sure you are on the Facebook Marketplace vehicle listing page.",
-              });
-            } else {
-              sendResponse(response || { success: true });
-            }
-          }
+      const FB_CREATE_URL = "https://www.facebook.com/marketplace/create/vehicle";
+
+      chrome.tabs.query({}, (allTabs) => {
+        const fbTab = allTabs.find(
+          (t) => t.url && t.url.startsWith(FB_CREATE_URL)
         );
+
+        function sendFillMessage(tabId) {
+          chrome.tabs.sendMessage(
+            tabId,
+            { type: "FILL_FORM", payload: payload.vehicle },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                sendResponse({
+                  success: false,
+                  error:
+                    chrome.runtime.lastError.message ||
+                    "Could not connect to the page. Try refreshing the Facebook tab and clicking List It again.",
+                });
+              } else {
+                sendResponse(response || { success: true });
+              }
+            }
+          );
+        }
+
+        if (fbTab) {
+          chrome.tabs.update(fbTab.id, { active: true }, () => {
+            chrome.windows.update(fbTab.windowId, { focused: true }, () => {
+              setTimeout(() => sendFillMessage(fbTab.id), 500);
+            });
+          });
+        } else {
+          chrome.tabs.create({ url: FB_CREATE_URL, active: true }, (newTab) => {
+            function onUpdated(tabId, info) {
+              if (tabId === newTab.id && info.status === "complete") {
+                chrome.tabs.onUpdated.removeListener(onUpdated);
+                setTimeout(() => sendFillMessage(newTab.id), 1500);
+              }
+            }
+            chrome.tabs.onUpdated.addListener(onUpdated);
+            setTimeout(() => {
+              chrome.tabs.onUpdated.removeListener(onUpdated);
+            }, 30000);
+          });
+        }
       });
       return true;
     }
