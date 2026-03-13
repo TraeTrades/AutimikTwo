@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Autimik - FB Marketplace Auto-Lister",
+  "version": "1.0.0",
+  "description": "Auto-fill Facebook Marketplace vehicle listings from your dealership inventory CSV.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["https://www.facebook.com/*"],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.facebook.com/marketplace/create/vehicle*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Autimik"
+  },
+  "icons": {}
+}

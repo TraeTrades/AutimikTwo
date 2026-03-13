@@ -74,4 +74,16 @@ Preferred communication style: Simple, everyday language.
 - **TypeScript**: Full type safety across frontend, backend, and shared schemas
 - **Drizzle Zod**: Integration between Drizzle ORM and Zod for database validation
 
+### Chrome Extension (extension/)
+- **Purpose**: Standalone Chrome extension for auto-filling Facebook Marketplace vehicle listing forms
+- **Architecture**: Manifest V3 with background service worker, content script, and popup UI
+- **Key Files**:
+  - `extension/manifest.json` — MV3 config with storage, activeTab, scripting permissions
+  - `extension/background/service-worker.js` — Message routing (SAVE/GET/CLEAR inventory, LIST_VEHICLE, MARK_LISTED)
+  - `extension/content.js` — Form auto-fill on FB Marketplace using React native value setter trick, aria-label + fallback selectors, MutationObserver-based `waitFor()` helper
+  - `extension/popup/popup.html` + `popup.js` — Dark-themed popup with CSV upload, vehicle list, search, and listing status
+  - `extension/INSTALL.md` — Installation instructions for loading unpacked in Chrome
+- **CSV Parsing**: Built-in parser (no external libraries), auto-maps columns via alias dictionary
+- **No backend dependency**: Works entirely standalone with chrome.storage.local
+
 The architecture prioritizes type safety, real-time updates, and scalable data processing while maintaining a clean separation between scraping logic, data storage, and user interface components.
