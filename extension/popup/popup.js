@@ -176,7 +176,7 @@ function renderVehicles(filter) {
     const card = document.createElement("div");
     card.className = "vehicle-card" + (isListed ? " listed" : "");
 
-    const thumbSrc = v.imageUrl || "";
+    const thumbSrc = v.imageUrl || (v.imageUrls && v.imageUrls[0]) || "";
     const displayTitle = v.title || [v.year, v.make, v.model].filter(Boolean).join(" ");
     const priceDisplay = v.price ? "$" + Number(v.price).toLocaleString() : "";
     const mileageDisplay = v.mileage ? Number(v.mileage).toLocaleString() + " mi" : "";

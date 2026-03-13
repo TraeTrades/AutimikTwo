@@ -88,7 +88,11 @@ async function selectDropdown(label, value) {
     return;
   }
   try {
-    const trigger = await waitFor([`[aria-label="${label}"]`]);
+    const trigger = await waitFor([
+      `[aria-label="${label}"]`,
+      `[aria-label*="${label}"]`,
+      `[data-testid*="${label.toLowerCase().replace(/\s+/g, '')}"]`,
+    ]);
     log("Opening dropdown:", label);
     trigger.click();
     await new Promise((r) => setTimeout(r, 400));
