@@ -19,5 +19,10 @@
     "default_popup": "popup/popup.html",
     "default_title": "Autimik"
   },
-  "icons": {}
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png",
+    "512": "icon-512.png"
+  }
 }

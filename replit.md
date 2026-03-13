@@ -2,7 +2,13 @@
 
 ## Overview
 
-Autimik 2.0 is a full-stack web application designed for scraping vehicle inventory data from automotive dealership websites. The system provides real-time scraping capabilities, data management, export functionality, and progress tracking through WebSocket connections. Built as a modern web scraper with a clean, responsive UI for managing and viewing scraped vehicle data.
+Autimik 2.0 is a full-stack web application designed for scraping vehicle inventory data from automotive dealership websites. The system provides real-time scraping capabilities, data management, export functionality, and progress tracking through WebSocket connections. Built as a modern web scraper with a clean, responsive UI for managing and viewing scraped vehicle data. Includes a dark-themed marketing landing page at "/" and a Chrome extension for auto-listing vehicles on Facebook Marketplace.
+
+## Route Structure
+
+- `/` — Marketing landing page (dark theme, Autimik branding)
+- `/app` — Dashboard (vehicle inventory scraper, main app)
+- `/import` — CSV import with smart column mapping
 
 ## User Preferences
 

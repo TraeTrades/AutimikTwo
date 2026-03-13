@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Car, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { Link } from "wouter";
 import ScrapeForm from "@/components/scrape-form";
 import ProgressSection from "@/components/progress-section";
 import Sidebar from "@/components/sidebar";
 import VehicleTable from "@/components/vehicle-table";
 import { useWebSocket } from "@/lib/websocket";
+import logoSmall from "@assets/autimik-icon-48_1773364287680.png";
 
 export default function Dashboard() {
   const { data: stats } = useQuery({
@@ -29,18 +30,17 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Car className="text-primary-foreground text-sm" />
-              </div>
+              <Link href="/">
+                <img src={logoSmall} alt="Autimik" className="w-8 h-8 rounded-lg cursor-pointer" />
+              </Link>
               <div>
                 <h1 className="text-xl font-semibold text-foreground">Autimik 2.0</h1>
                 <p className="text-xs text-muted-foreground">Vehicle Inventory Scraper</p>
               </div>
             </div>
             <nav className="hidden md:flex items-center space-x-6">
-              <a href="#" className="text-foreground hover:text-primary transition-colors">Dashboard</a>
+              <Link href="/app" className="text-foreground hover:text-primary transition-colors">Dashboard</Link>
               <Link href="/import" className="text-muted-foreground hover:text-primary transition-colors">Import CSV</Link>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Settings</a>
             </nav>
             <div className="flex items-center space-x-3">
               <span className="text-sm text-muted-foreground hidden sm:inline">user@company.com</span>
