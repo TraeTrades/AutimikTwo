@@ -3,6 +3,7 @@ import { Globe, FileSpreadsheet, Facebook, ArrowRight, Download, Search, Upload,
 import { useState, useEffect } from "react";
 import logoIcon from "@assets/autimik-icon-128_1773364287681.png";
 import logoSmall from "@assets/autimik-icon-48_1773364287680.png";
+import DiagonalLinesBackground from "@/components/diagonal-lines-background";
 
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -13,7 +14,10 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen" style={{ background: "#0a0f1e" }}>
+    <div className="min-h-screen relative" style={{ background: "#0a0f1e" }}>
+      <DiagonalLinesBackground />
+      <div className="pointer-events-none fixed inset-0" style={{ background: "linear-gradient(180deg, rgba(10,15,30,0.3) 0%, rgba(10,15,30,0.1) 40%, rgba(10,15,30,0.3) 100%)", zIndex: 1 }} />
+      <div className="relative z-10">
       <nav className="border-b border-white/10 sticky top-0 z-50 backdrop-blur-md" style={{ background: "rgba(10,15,30,0.92)" }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -156,6 +160,7 @@ export default function Landing() {
           <p className="text-gray-400 text-sm">&copy; {new Date().getFullYear()} Autimik. All rights reserved.</p>
         </div>
       </footer>
+      </div>
     </div>
   );
 }
