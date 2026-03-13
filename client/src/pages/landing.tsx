@@ -17,7 +17,7 @@ export default function Landing() {
       <nav className="border-b border-white/10 sticky top-0 z-50 backdrop-blur-md" style={{ background: "rgba(10,15,30,0.92)" }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={logoSmall} alt="Autimik" className="w-9 h-9 rounded-lg" />
+            <img src={logoSmall} alt="Autimik" className="w-12 h-12 rounded-lg" />
             <span className="text-white text-xl font-bold tracking-tight">Autimik</span>
           </div>
           <div className="hidden sm:flex items-center gap-6">
@@ -48,7 +48,7 @@ export default function Landing() {
 
       <section className="px-4 pt-20 pb-24 sm:pt-28 sm:pb-32">
         <div className="max-w-3xl mx-auto text-center">
-          <img src={logoIcon} alt="Autimik" className="w-24 h-24 sm:w-32 sm:h-32 mx-auto rounded-2xl mb-8 shadow-2xl shadow-emerald-500/20" />
+          <img src={logoIcon} alt="Autimik" className="w-32 h-32 mx-auto rounded-2xl mb-8 shadow-2xl shadow-emerald-500/20" />
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
             Auto-list your inventory.{" "}
             <span style={{ color: "#22c55e" }}>Effortlessly.</span>
