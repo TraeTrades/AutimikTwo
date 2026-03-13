@@ -9,23 +9,12 @@ import { Parser } from "json2csv";
 import * as XLSX from "xlsx";
 import { execSync } from "child_process";
 import { registerCsvImportRoutes } from "./csv-import";
-import path from "path";
-import fs from "fs";
 
 puppeteerExtra.use(StealthPlugin());
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
-  app.get("/extension/INSTALL.md", (_req, res) => {
-    const filePath = path.resolve("extension/INSTALL.md");
-    if (fs.existsSync(filePath)) {
-      res.type("text/markdown").sendFile(filePath);
-    } else {
-      res.status(404).send("File not found");
-    }
-  });
-  
   // We'll set up WebSocket separately to avoid conflicts
   const activeConnections = new Map();
 
