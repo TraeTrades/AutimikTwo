@@ -60,7 +60,7 @@ export default function Landing() {
             <Link href="/app" className="w-full sm:w-auto text-base font-semibold px-8 py-3.5 rounded-xl text-white flex items-center justify-center gap-2 transition-all hover:brightness-110 hover:scale-[1.02]" style={{ background: "#22c55e" }}>
               Launch App <ArrowRight className="w-4 h-4" />
             </Link>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto text-base font-semibold px-8 py-3.5 rounded-xl text-white border border-white/20 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 transition-all">
+            <a href="/extension/INSTALL.md" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto text-base font-semibold px-8 py-3.5 rounded-xl text-white border border-white/20 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 transition-all">
               <Download className="w-4 h-4" /> Get Chrome Extension
             </a>
           </div>
