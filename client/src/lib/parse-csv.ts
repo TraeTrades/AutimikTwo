@@ -16,6 +16,8 @@ const COLUMN_ALIASES: Record<string, string[]> = {
   description: ["description"],
 };
 
+type VehicleField = keyof Omit<DemoVehicle, "id">;
+
 function parseCSVText(text: string): string[][] {
   const results: string[][] = [];
   let fields: string[] = [];
@@ -87,19 +89,35 @@ export function processCSV(text: string): DemoVehicle[] {
       mapping = autoMapColumns(headers);
       continue;
     }
-    const vehicle: any = { id: "csv_" + rows.length + "_" + Date.now() };
+    const partial: Partial<Record<VehicleField, string>> = {};
     for (const [field, colIdx] of Object.entries(mapping!)) {
       const val = fields[colIdx] !== undefined ? fields[colIdx].trim() : "";
-      vehicle[field] = val;
+      partial[field as VehicleField] = val;
     }
-    if (vehicle.price) {
-      vehicle.price = vehicle.price.replace(/[^0-9.]/g, "");
+    if (partial.price) {
+      partial.price = partial.price.replace(/[^0-9.]/g, "");
     }
-    if (vehicle.mileage) {
-      vehicle.mileage = vehicle.mileage.replace(/[^0-9]/g, "");
+    if (partial.mileage) {
+      partial.mileage = partial.mileage.replace(/[^0-9]/g, "");
     }
-    if (vehicle.make || vehicle.model) {
-      rows.push(vehicle as DemoVehicle);
+    if (partial.make || partial.model) {
+      const vehicle: DemoVehicle = {
+        id: "csv_" + rows.length + "_" + Date.now(),
+        year: partial.year || "",
+        make: partial.make || "",
+        model: partial.model || "",
+        trim: partial.trim || "",
+        vin: partial.vin || "",
+        stockNumber: partial.stockNumber || "",
+        price: partial.price || "",
+        mileage: partial.mileage || "",
+        exteriorColor: partial.exteriorColor || "",
+        transmission: partial.transmission || "",
+        fuelType: partial.fuelType || "",
+        condition: partial.condition || "",
+        description: partial.description || "",
+      };
+      rows.push(vehicle);
     }
   }
   return rows;

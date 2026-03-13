@@ -64,7 +64,7 @@ const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset }, r
           clearInterval(interval);
           resolve();
         }
-      }, 25);
+      }, 30);
     });
   }, []);
 
@@ -221,11 +221,13 @@ const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset }, r
           display: "flex",
           alignItems: "center",
           gap: 8,
+          animation: "fb-slide-in 0.3s ease-out",
         }}>
           <span style={{ fontSize: 18 }}>✓</span>
           <span style={{ fontSize: 13, fontWeight: 600, color: "#166534" }}>
             Listing ready! Review and publish on Facebook.
           </span>
+          <style>{`@keyframes fb-slide-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
         </div>
       )}
 
