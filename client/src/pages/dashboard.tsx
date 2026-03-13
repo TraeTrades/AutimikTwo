@@ -41,6 +41,7 @@ export default function Dashboard() {
             <nav className="hidden md:flex items-center space-x-6">
               <Link href="/app" className="text-foreground hover:text-primary transition-colors">Dashboard</Link>
               <Link href="/import" className="text-muted-foreground hover:text-primary transition-colors">Import CSV</Link>
+              <Link href="/demo" className="text-muted-foreground hover:text-primary transition-colors">Extension Demo</Link>
             </nav>
             <div className="flex items-center space-x-3">
               <span className="text-sm text-muted-foreground hidden sm:inline">user@company.com</span>

@@ -27,6 +27,7 @@ export default function Landing() {
           <div className="hidden sm:flex items-center gap-6">
             <a href="#features" className="text-gray-300 hover:text-white text-sm transition-colors">Features</a>
             <a href="#how-it-works" className="text-gray-300 hover:text-white text-sm transition-colors">How It Works</a>
+            <Link href="/demo" className="text-gray-300 hover:text-white text-sm transition-colors">Demo</Link>
             <Link href="/app" className="text-sm font-semibold px-5 py-2 rounded-lg text-white transition-all hover:brightness-110" style={{ background: "#22c55e" }}>
               Launch App
             </Link>
@@ -43,6 +44,7 @@ export default function Landing() {
           <div className="sm:hidden border-t border-white/10 px-4 py-4 flex flex-col gap-3" style={{ background: "rgba(10,15,30,0.98)" }}>
             <a href="#features" className="text-gray-300 hover:text-white text-sm py-2" onClick={() => setMobileMenuOpen(false)}>Features</a>
             <a href="#how-it-works" className="text-gray-300 hover:text-white text-sm py-2" onClick={() => setMobileMenuOpen(false)}>How It Works</a>
+            <Link href="/demo" className="text-gray-300 hover:text-white text-sm py-2" onClick={() => setMobileMenuOpen(false)}>Demo</Link>
             <Link href="/app" className="text-sm font-semibold px-5 py-2.5 rounded-lg text-white text-center transition-all hover:brightness-110" style={{ background: "#22c55e" }}>
               Launch App
             </Link>
@@ -67,6 +69,11 @@ export default function Landing() {
             <a href="/extension-install.md" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto text-base font-semibold px-8 py-3.5 rounded-xl text-white border border-white/20 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 transition-all">
               <Download className="w-4 h-4" /> Get Chrome Extension
             </a>
+          </div>
+          <div className="mt-6">
+            <Link href="/demo" className="text-sm font-medium transition-colors hover:text-white" style={{ color: "#60a5fa" }}>
+              See it in action &rarr;
+            </Link>
           </div>
         </div>
       </section>

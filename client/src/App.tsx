@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import CsvImport from "@/pages/csv-import";
+import Demo from "@/pages/demo";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -15,6 +16,7 @@ function Router() {
       <Route path="/app" component={Dashboard} />
       <Route path="/dashboard">{() => <Redirect to="/app" />}</Route>
       <Route path="/import" component={CsvImport} />
+      <Route path="/demo" component={Demo} />
       <Route component={NotFound} />
     </Switch>
   );

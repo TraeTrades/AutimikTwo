@@ -9,6 +9,8 @@ Autimik 2.0 is a full-stack web application designed for scraping vehicle invent
 - `/` — Marketing landing page (dark theme, Autimik branding)
 - `/app` — Dashboard (vehicle inventory scraper, main app)
 - `/import` — CSV import with smart column mapping
+- `/demo` — Interactive extension demo (Chrome extension popup replica + simulated FB form fill)
+- `/dashboard` — Redirects to `/app`
 
 ## User Preferences
 
