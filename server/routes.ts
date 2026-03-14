@@ -338,18 +338,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const vehicle = vehicles[i] as any;
         const detailUrl = vehicle.dealershipUrl;
 
-        const imageProgress = 70 + Math.round((i / totalVehicles) * 30);
+        const imageProgress = 70 + Math.round(((i + 1) / totalVehicles) * 30);
         broadcastProgress(jobId, {
           progress: imageProgress,
           vehiclesFound: totalVehicles,
-          processed: i,
+          processed: i + 1,
           errors: 0,
           statusMessage: `Fetching images ${i + 1}/${totalVehicles}...`
         });
 
         await storage.updateScrapingJob(jobId, {
           progress: imageProgress,
-          vehiclesProcessed: i
+          vehiclesProcessed: i + 1
         });
 
         if (!detailUrl || detailUrl === url) {
