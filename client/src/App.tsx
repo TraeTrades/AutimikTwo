@@ -7,6 +7,7 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import CsvImport from "@/pages/csv-import";
 import Demo from "@/pages/demo";
+import Privacy from "@/pages/privacy";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/dashboard">{() => <Redirect to="/app" />}</Route>
       <Route path="/import" component={CsvImport} />
       <Route path="/demo" component={Demo} />
+      <Route path="/privacy" component={Privacy} />
       <Route component={NotFound} />
     </Switch>
   );
