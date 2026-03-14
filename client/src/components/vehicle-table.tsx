@@ -183,7 +183,7 @@ export default function VehicleTable({ vehicles = [] }: VehicleTableProps) {
                     <TableCell>
                       {vehicle.imageUrl ? (
                         <img
-                          src={vehicle.imageUrl}
+                          src={vehicle.imageUrl.split(',')[0]}
                           alt={vehicle.title}
                           className="w-12 h-9 object-cover rounded-md border border-border"
                           data-testid={`image-vehicle-${vehicle.id}`}

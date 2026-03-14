@@ -333,6 +333,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (newHeight === previousHeight || vehicles.length >= maxVehicles) break;
       }
 
+      // Second pass: visit each vehicle's detail page to collect up to 15 gallery images
+      const totalVehicles = vehicles.length;
+      for (let i = 0; i < totalVehicles; i++) {
+        const vehicle = vehicles[i] as any;
+        const detailUrl = vehicle.dealershipUrl;
+
+        broadcastProgress(jobId, {
+          progress: Math.round(((i) / totalVehicles) * 100),
+          vehiclesFound: totalVehicles,
+          processed: i,
+          errors: 0,
+          statusMessage: `Fetching images ${i + 1}/${totalVehicles}...`
+        });
+
+        if (!detailUrl || detailUrl === url) {
+          continue;
+        }
+
+        try {
+          await page.goto(detailUrl, { waitUntil: "domcontentloaded", timeout: 15000 });
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          await page.evaluate(() => {
+            document.querySelectorAll('img[data-src]').forEach((img: any) => {
+              if (!img.src || img.src === window.location.href) img.src = img.getAttribute('data-src');
+            });
+            document.querySelectorAll('img[data-lazy-src]').forEach((img: any) => {
+              if (!img.src || img.src === window.location.href) img.src = img.getAttribute('data-lazy-src');
+            });
+            document.querySelectorAll('img[data-original]').forEach((img: any) => {
+              if (!img.src || img.src === window.location.href) img.src = img.getAttribute('data-original');
+            });
+          });
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          const galleryImages: string[] = await page.evaluate(() => {
+            const MAX_IMAGES = 15;
+            const seen = new Set<string>();
+            const results: string[] = [];
+            const allImgs = Array.from(document.querySelectorAll('img'));
+
+            for (const img of allImgs) {
+              if (results.length >= MAX_IMAGES) break;
+
+              const src = (img as any).getAttribute('data-src') ||
+                          (img as any).getAttribute('data-lazy-src') ||
+                          (img as any).getAttribute('data-original') ||
+                          (img as any).getAttribute('data-img') ||
+                          img.src || '';
+
+              if (!src || src.startsWith('data:')) continue;
+              if (src.endsWith('.svg')) continue;
+              if (src.includes('cargurus.com')) continue;
+              if (src.includes('placeholder')) continue;
+              if (src.includes('spinner') || src.includes('loading')) continue;
+              if (src.includes('logo') || src.includes('badge') || src.includes('icon')) continue;
+              if (img.naturalWidth > 0 && img.naturalWidth < 80) continue;
+              if (img.naturalHeight > 0 && img.naturalHeight < 80) continue;
+
+              const normalized = src.split('?')[0];
+              if (seen.has(normalized)) continue;
+              seen.add(normalized);
+              results.push(src);
+            }
+
+            return results;
+          });
+
+          if (galleryImages.length > 0) {
+            vehicle.imageUrl = galleryImages.join(',');
+          }
+        } catch (e) {
+          console.log(`Failed to fetch detail images for ${vehicle.title}: ${(e as Error).message}`);
+        }
+      }
+
       // Save vehicles to storage
       for (const vehicleData of vehicles) {
         await storage.createVehicle({
