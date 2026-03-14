@@ -89,7 +89,6 @@ const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset }, r
       { key: "model", value: vehicle.model || "", isSelect: false },
       { key: "mileage", value: mileageNum, isSelect: false },
       { key: "condition", value: vehicle.condition || "Used - Good", isSelect: true },
-      { key: "title", value: autoTitle, isSelect: false },
       { key: "description", value: vehicle.description || `${autoTitle} in great condition. Clean title, well maintained.`, isSelect: false },
     ];
 
@@ -260,11 +259,11 @@ const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset }, r
               return (
                 <div key={field.key} style={{ position: "relative", marginBottom: 10 }}>
                   <div style={{
-                    border: `1px solid ${isActive ? FB_BLUE : FB_BORDER}`,
+                    border: `1px solid ${isActive ? "#22c55e" : FB_BORDER}`,
                     borderRadius: 6,
                     background: "#fff",
                     padding: hasVal || isActive ? "18px 12px 6px" : "12px",
-                    boxShadow: isActive ? `0 0 0 2px rgba(24,119,242,0.15)` : "none",
+                    boxShadow: isActive ? "0 0 0 2px rgba(34,197,94,0.15)" : "none",
                     transition: "border-color 0.15s, box-shadow 0.15s",
                     minHeight: 46,
                   }}>
@@ -274,7 +273,7 @@ const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset }, r
                       left: field.prefix && (hasVal || isActive) ? 22 : 12,
                       fontSize: hasVal || isActive ? 10 : 14,
                       fontWeight: hasVal || isActive ? 600 : 400,
-                      color: isActive ? FB_BLUE : FB_MUTED,
+                      color: isActive ? "#22c55e" : FB_MUTED,
                       transition: "all 0.15s",
                       pointerEvents: "none",
                     }}>
@@ -285,7 +284,7 @@ const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset }, r
                         {field.prefix && <span style={{ fontSize: 14, color: FB_TEXT, marginRight: 1 }}>{field.prefix}</span>}
                         <span style={{ fontSize: 14, color: FB_TEXT }}>
                           {val}
-                          {isActive && <span style={{ borderRight: `2px solid ${FB_BLUE}`, animation: "fb-blink 1s step-end infinite" }}>&#8203;</span>}
+                          {isActive && <span style={{ borderRight: "2px solid #22c55e", animation: "fb-blink 1s step-end infinite" }}>&#8203;</span>}
                         </span>
                       </div>
                     )}
@@ -296,17 +295,17 @@ const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset }, r
 
             <div style={{ position: "relative", marginBottom: 10 }}>
               <div style={{
-                border: `1px solid ${activeField === "condition" ? FB_BLUE : FB_BORDER}`,
+                border: `1px solid ${activeField === "condition" ? "#22c55e" : FB_BORDER}`,
                 borderRadius: 6, background: "#fff",
                 padding: values.condition || activeField === "condition" ? "18px 12px 6px" : "12px",
-                boxShadow: activeField === "condition" ? `0 0 0 2px rgba(24,119,242,0.15)` : "none",
+                boxShadow: activeField === "condition" ? "0 0 0 2px rgba(34,197,94,0.15)" : "none",
                 transition: "border-color 0.15s", minHeight: 46,
               }}>
                 <div style={{
                   position: "absolute", top: values.condition || activeField === "condition" ? 5 : 14,
                   left: 12, fontSize: values.condition || activeField === "condition" ? 10 : 14,
                   fontWeight: values.condition || activeField === "condition" ? 600 : 400,
-                  color: activeField === "condition" ? FB_BLUE : FB_MUTED, transition: "all 0.15s",
+                  color: activeField === "condition" ? "#22c55e" : FB_MUTED, transition: "all 0.15s",
                   pointerEvents: "none",
                 }}>Condition</div>
                 {(values.condition || activeField === "condition") && (
@@ -320,23 +319,23 @@ const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset }, r
 
             <div style={{ position: "relative", marginBottom: 10 }}>
               <div style={{
-                border: `1px solid ${activeField === "description" ? FB_BLUE : FB_BORDER}`,
+                border: `1px solid ${activeField === "description" ? "#22c55e" : FB_BORDER}`,
                 borderRadius: 6, background: "#fff",
                 padding: values.description || activeField === "description" ? "18px 12px 6px" : "12px",
-                boxShadow: activeField === "description" ? `0 0 0 2px rgba(24,119,242,0.15)` : "none",
+                boxShadow: activeField === "description" ? "0 0 0 2px rgba(34,197,94,0.15)" : "none",
                 transition: "border-color 0.15s", minHeight: 72,
               }}>
                 <div style={{
                   position: "absolute", top: values.description || activeField === "description" ? 5 : 14,
                   left: 12, fontSize: values.description || activeField === "description" ? 10 : 14,
                   fontWeight: values.description || activeField === "description" ? 600 : 400,
-                  color: activeField === "description" ? FB_BLUE : FB_MUTED, transition: "all 0.15s",
+                  color: activeField === "description" ? "#22c55e" : FB_MUTED, transition: "all 0.15s",
                   pointerEvents: "none",
                 }}>Description</div>
                 {(values.description || activeField === "description") && (
                   <div style={{ fontSize: 13, color: FB_TEXT, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                     {values.description}
-                    {activeField === "description" && <span style={{ borderRight: `2px solid ${FB_BLUE}`, animation: "fb-blink 1s step-end infinite" }}>&#8203;</span>}
+                    {activeField === "description" && <span style={{ borderRight: "2px solid #22c55e", animation: "fb-blink 1s step-end infinite" }}>&#8203;</span>}
                   </div>
                 )}
               </div>
@@ -345,13 +344,13 @@ const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset }, r
 
             {success && (
               <div style={{
-                padding: "10px 14px", background: "#e7f3ff", border: `1px solid #b3d7ff`,
+                padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0",
                 borderRadius: 8, display: "flex", alignItems: "center", gap: 8,
                 animation: "fb-slide-in 0.3s ease-out", marginBottom: 4,
               }}>
-                <span style={{ fontSize: 16, color: FB_BLUE }}>✓</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: FB_BLUE }}>
-                  Fields filled! Review your listing and click Next.
+                <span style={{ fontSize: 16, color: "#22c55e" }}>✓</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#166534" }}>
+                  Listing ready! Review and publish on Facebook.
                 </span>
                 <style>{`@keyframes fb-slide-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
               </div>
