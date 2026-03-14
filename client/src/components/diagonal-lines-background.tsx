@@ -19,7 +19,7 @@ const COLORS = [
 ];
 
 const LINE_COUNT = 70;
-const ANGLE = Math.PI / 4;
+const ANGLE = (40 * Math.PI) / 180;
 const COS_A = Math.cos(ANGLE);
 const SIN_A = Math.sin(ANGLE);
 
