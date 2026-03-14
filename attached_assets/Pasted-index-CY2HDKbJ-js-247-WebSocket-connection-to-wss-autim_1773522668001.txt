@@ -1,0 +1,47 @@
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+index-CY2HDKbJ.js:247 WebSocket connection to 'wss://autimik2.replit.app/' failed: 
+index-CY2HDKbJ.js:247 WebSocket error: 
+Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+﻿
+
+Press ctrl i to turn on code suggestions. Press ctrl x to disable code suggestions.
+ctrl
+i
+ to turn on code suggestions. Don't show again
+
