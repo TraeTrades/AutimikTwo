@@ -18,15 +18,18 @@ export default function Privacy() {
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
         <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">Privacy Policy</h1>
-        <p className="text-gray-400 text-sm mb-10">
+        <p className="text-gray-400 text-sm mb-1">
           Last updated: March 14, 2026
+        </p>
+        <p className="text-gray-500 text-sm mb-10">
+          Autimik is a product of <span className="text-gray-400 font-medium">LECdealerapps</span>.
         </p>
 
         <div className="space-y-10 text-gray-300 leading-relaxed">
           <section>
             <h2 className="text-xl font-semibold text-white mb-3">Overview</h2>
             <p>
-              Autimik ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains how the Autimik Chrome extension and web application handle your information. The short version: <strong className="text-white">we do not collect, store, or transmit any personal data.</strong>
+              Autimik, a product of LECdealerapps ("we", "us", or "our"), is committed to protecting your privacy. This Privacy Policy explains how the Autimik Chrome extension and web application handle your information. The short version: <strong className="text-white">we do not collect, store, or transmit any personal data.</strong>
             </p>
           </section>
 
@@ -121,7 +124,7 @@ export default function Privacy() {
           <section>
             <h2 className="text-xl font-semibold text-white mb-3">Contact</h2>
             <p>
-              If you have any questions about this Privacy Policy or how Autimik handles data, please contact us at{" "}
+              If you have any questions about this Privacy Policy or how Autimik handles data, please contact LECdealerapps at{" "}
               <a href="mailto:privacy@autimik.com" className="underline hover:text-white transition-colors" style={{ color: "#22c55e" }}>
                 privacy@autimik.com
               </a>
@@ -137,7 +140,7 @@ export default function Privacy() {
             <img src={logoSmall} alt="Autimik" className="w-5 h-5 rounded" />
             <span className="text-gray-400 text-sm">Autimik</span>
           </div>
-          <p className="text-gray-500 text-sm">&copy; 2026 Autimik. All rights reserved.</p>
+          <p className="text-gray-500 text-sm">&copy; 2026 LECdealerapps. All rights reserved.</p>
         </div>
       </footer>
     </div>
