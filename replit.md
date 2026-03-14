@@ -48,8 +48,13 @@ Preferred communication style: Simple, everyday language.
 - **Neon Database**: Serverless PostgreSQL hosting with connection pooling
 - **Connection Pooling**: @neondatabase/serverless for efficient database connections
 
-#### Web Scraping Infrastructure
-- **Puppeteer**: Headless Chrome automation for dynamic website scraping
+#### Web Scraping Infrastructure (Multi-Strategy)
+The scraper uses a 3-layer strategy system, trying each in order:
+1. **Platform API Probing** (`server/platform-detector.ts`): Detects dealer platform (CDK, DealerOn, Dealer Inspire, DealerSocket, DealerCenter, WordPress) via HTTP headers/HTML fingerprints, then probes known API endpoints for JSON vehicle data
+2. **Puppeteer Network Interception**: Launches headless Chrome with response listener that captures XHR/fetch JSON payloads containing vehicle data — works even on Cloudflare-protected sites once challenge passes
+3. **HTML Parsing**: Existing DOM-scraping fallback for sites without detectable APIs
+- **Vehicle Normalizer** (`server/vehicle-normalizer.ts`): Maps diverse API response shapes to internal schema using field alias dictionaries
+- **Detail-Page Image Collector**: After any strategy succeeds, visits each vehicle's detail page to collect up to 15 gallery images
 - **Browser Management**: Automated browser lifecycle with memory optimization
 
 #### Data Import Capabilities
