@@ -44,6 +44,10 @@ export default function Dashboard() {
               <Link href="/demo" className="text-muted-foreground hover:text-primary transition-colors">Extension Demo</Link>
             </nav>
             <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-1.5" title={isConnected ? "Live updates connected" : "Live updates disconnected"}>
+                <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-500" : "bg-red-500 animate-pulse"}`} />
+                <span className="text-xs text-muted-foreground hidden sm:inline">{isConnected ? "Live" : "Offline"}</span>
+              </div>
               <span className="text-sm text-muted-foreground hidden sm:inline">user@company.com</span>
               <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
                 <Users className="text-muted-foreground text-sm" />
