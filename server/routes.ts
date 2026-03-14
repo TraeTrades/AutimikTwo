@@ -10,7 +10,7 @@ import * as XLSX from "xlsx";
 import { execSync } from "child_process";
 import { registerCsvImportRoutes } from "./csv-import";
 import { detectPlatform, getApiEndpoints } from "./platform-detector";
-import { normalizeVehicle, extractVehicleArray, looksLikeVehicleData } from "./vehicle-normalizer";
+import { normalizeVehicle, extractVehicleArray } from "./vehicle-normalizer";
 import type { NormalizedVehicle } from "./vehicle-normalizer";
 
 puppeteerExtra.use(StealthPlugin());

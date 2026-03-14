@@ -47,6 +47,37 @@ export async function detectPlatform(url: string): Promise<DetectionResult> {
     const body = await res.text();
     const bodyLower = body.toLowerCase();
 
+    const xPoweredBy = (headers["x-powered-by"] || "").toLowerCase();
+    if (xPoweredBy.includes("dealer.com") || xPoweredBy.includes("cdk")) {
+      scores.dealercom += 3;
+      hints.push("X-Powered-By references dealer.com/cdk");
+    }
+    if (xPoweredBy.includes("dealeron")) {
+      scores.dealeron += 3;
+      hints.push("X-Powered-By references dealeron");
+    }
+    if (xPoweredBy.includes("wordpress") || xPoweredBy.includes("php")) {
+      scores.wordpress += 1;
+      hints.push("X-Powered-By suggests PHP/WordPress");
+    }
+
+    const generatorMatch = body.match(/<meta[^>]+name=["']generator["'][^>]+content=["']([^"']+)["']/i);
+    if (generatorMatch) {
+      const gen = generatorMatch[1].toLowerCase();
+      hints.push(`meta generator: ${generatorMatch[1]}`);
+      if (gen.includes("wordpress")) { scores.wordpress += 3; }
+      if (gen.includes("dealer")) { scores.dealercom += 2; }
+    }
+
+    const scriptSrcs = [...body.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m => m[1].toLowerCase());
+    for (const src of scriptSrcs) {
+      if (src.includes("dealer.com") || src.includes("ddc-")) { scores.dealercom += 2; hints.push(`script src references dealer.com/ddc`); break; }
+      if (src.includes("dealeron")) { scores.dealeron += 2; hints.push(`script src references dealeron`); break; }
+      if (src.includes("dealerinspire") || src.includes("di-cdn")) { scores.dealerinspire += 2; hints.push(`script src references dealerinspire`); break; }
+      if (src.includes("dealersocket") || src.includes("idms")) { scores.dealersocket += 2; hints.push(`script src references dealersocket`); break; }
+      if (src.includes("dealercenter")) { scores.dealercenter += 2; hints.push(`script src references dealercenter`); break; }
+    }
+
     if (headers["server"]?.includes("dealer.com") || bodyLower.includes("dealer.com/content")) {
       scores.dealercom += 3;
       hints.push("server header or content references dealer.com");
