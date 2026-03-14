@@ -313,8 +313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const newVehicles: any[] = pageVehicles.filter((v: any) => !existingVins.has(v.vin));
         vehicles.push(...newVehicles);
 
-        // Update progress
-        const progress = Math.min(Math.round((vehicles.length / maxVehicles) * 100), 100);
+        const progress = Math.min(Math.round((vehicles.length / maxVehicles) * 70), 70);
         await storage.updateScrapingJob(jobId, {
           progress,
           vehiclesFound: vehicles.length,
@@ -339,12 +338,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const vehicle = vehicles[i] as any;
         const detailUrl = vehicle.dealershipUrl;
 
+        const imageProgress = 70 + Math.round((i / totalVehicles) * 30);
         broadcastProgress(jobId, {
-          progress: Math.round(((i) / totalVehicles) * 100),
+          progress: imageProgress,
           vehiclesFound: totalVehicles,
           processed: i,
           errors: 0,
           statusMessage: `Fetching images ${i + 1}/${totalVehicles}...`
+        });
+
+        await storage.updateScrapingJob(jobId, {
+          progress: imageProgress,
+          vehiclesProcessed: i
         });
 
         if (!detailUrl || detailUrl === url) {
