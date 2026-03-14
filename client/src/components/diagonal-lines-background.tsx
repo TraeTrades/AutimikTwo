@@ -28,7 +28,7 @@ function createLine(canvasW: number, canvasH: number, randomizePos = true): Line
   const length = 40 + Math.random() * 80;
   const speed = 0.3 + Math.random() * 1.2;
   const opacity = 0.08 + Math.random() * 0.35;
-  const thickness = 2 + Math.random() * 3;
+  const thickness = 4 + Math.random() * 5;
 
   let x: number;
   let y: number;
