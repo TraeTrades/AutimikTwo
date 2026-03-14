@@ -158,8 +158,16 @@ const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset }, r
         }}>×</button>
       </div>
 
+      <style>{`
+        .fb-sidebar { display: flex; flex-direction: column; }
+        .fb-preview { display: block; }
+        @media (max-width: 580px) {
+          .fb-sidebar { display: none !important; }
+          .fb-preview { display: none !important; }
+        }
+      `}</style>
       <div style={{ display: "flex", minHeight: 420 }}>
-        <div style={{
+        <div className="fb-sidebar" style={{
           width: 200, flexShrink: 0, borderRight: `1px solid ${FB_BORDER}`,
           background: "#fff", padding: "12px 0",
         }}>
@@ -390,7 +398,7 @@ const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset }, r
           </div>
         </div>
 
-        <div style={{
+        <div className="fb-preview" style={{
           width: 170, flexShrink: 0, borderLeft: `1px solid ${FB_BORDER}`,
           background: FB_GRAY, padding: 12,
         }}>
