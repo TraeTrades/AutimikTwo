@@ -14,10 +14,8 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen relative" style={{ background: "#0a0f1e" }}>
-      <DiagonalLinesBackground />
-      <div className="pointer-events-none fixed inset-0" style={{ background: "linear-gradient(180deg, rgba(10,15,30,0.3) 0%, rgba(10,15,30,0.1) 40%, rgba(10,15,30,0.3) 100%)", zIndex: 1 }} />
-      <div className="relative z-10">
+    <div className="min-h-screen" style={{ background: "#0a0f1e" }}>
+      <div>
       <nav className="border-b border-white/10 sticky top-0 z-50 backdrop-blur-md" style={{ background: "rgba(10,15,30,0.92)" }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -52,8 +50,9 @@ export default function Landing() {
         )}
       </nav>
 
-      <section className="px-4 pt-20 pb-24 sm:pt-28 sm:pb-32">
-        <div className="max-w-3xl mx-auto text-center">
+      <section className="relative overflow-hidden px-4 pt-20 pb-24 sm:pt-28 sm:pb-32">
+        <DiagonalLinesBackground />
+        <div className="relative z-10 max-w-3xl mx-auto text-center">
           <img src={logoIcon} alt="Autimik" className="w-32 h-32 mx-auto rounded-2xl mb-8 shadow-2xl shadow-emerald-500/20" />
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
             Auto-list your inventory.{" "}

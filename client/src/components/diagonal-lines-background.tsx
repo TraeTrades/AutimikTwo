@@ -18,27 +18,31 @@ const COLORS = [
   "rgba(30,40,60,0.5)",
 ];
 
-function createLine(canvasW: number, canvasH: number, randomizeY = true): Line {
-  const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-  const length = 20 + Math.random() * 60;
-  const speed = 0.3 + Math.random() * 1.2;
-  const opacity = 0.08 + Math.random() * 0.35;
-  const thickness = 1 + Math.random() * 1;
-
-  const x = randomizeY
-    ? Math.random() * (canvasW + canvasH) - canvasH
-    : -length - Math.random() * canvasW * 0.5;
-  const y = randomizeY
-    ? Math.random() * (canvasH + canvasW)
-    : -length - Math.random() * canvasH * 0.3;
-
-  return { x, y, length, speed, opacity, thickness, color };
-}
-
 const LINE_COUNT = 70;
 const ANGLE = Math.PI / 4;
 const COS_A = Math.cos(ANGLE);
 const SIN_A = Math.sin(ANGLE);
+
+function createLine(canvasW: number, canvasH: number, randomizePos = true): Line {
+  const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+  const length = 40 + Math.random() * 80;
+  const speed = 0.3 + Math.random() * 1.2;
+  const opacity = 0.08 + Math.random() * 0.35;
+  const thickness = 2 + Math.random() * 3;
+
+  let x: number;
+  let y: number;
+
+  if (randomizePos) {
+    x = Math.random() * (canvasW + canvasH) - canvasH;
+    y = canvasH - Math.random() * (canvasH + canvasW);
+  } else {
+    x = -length - Math.random() * canvasW * 0.5;
+    y = canvasH + length + Math.random() * canvasH * 0.5;
+  }
+
+  return { x, y, length, speed, opacity, thickness, color };
+}
 
 export default function DiagonalLinesBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -49,6 +53,8 @@ export default function DiagonalLinesBackground() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const parent = canvas.parentElement;
+
     let animId: number;
     let w = 0;
     let h = 0;
@@ -56,8 +62,8 @@ export default function DiagonalLinesBackground() {
 
     function resize() {
       const dpr = window.devicePixelRatio || 1;
-      w = window.innerWidth;
-      h = window.innerHeight;
+      w = parent ? parent.offsetWidth : window.innerWidth;
+      h = parent ? parent.offsetHeight : window.innerHeight;
       canvas!.width = w * dpr;
       canvas!.height = h * dpr;
       canvas!.style.width = w + "px";
@@ -75,9 +81,12 @@ export default function DiagonalLinesBackground() {
 
       for (const line of lines) {
         line.x += line.speed * COS_A;
-        line.y += line.speed * SIN_A;
+        line.y -= line.speed * SIN_A;
 
-        if (line.x - line.length > w + 50 || line.y - line.length > h + 50) {
+        const offRight = line.x - line.length * COS_A > w + 50;
+        const offTop = line.y + line.length * SIN_A < -50;
+
+        if (offRight || offTop) {
           Object.assign(line, createLine(w, h, false));
         }
 
@@ -87,7 +96,7 @@ export default function DiagonalLinesBackground() {
         ctx!.strokeStyle = line.color;
         ctx!.globalAlpha = line.opacity;
         ctx!.lineWidth = line.thickness;
-        ctx!.lineCap = "square";
+        ctx!.lineCap = "round";
         ctx!.stroke();
       }
 
@@ -109,11 +118,9 @@ export default function DiagonalLinesBackground() {
     <canvas
       ref={canvasRef}
       style={{
-        position: "fixed",
+        position: "absolute",
         top: 0,
         left: 0,
-        width: "100%",
-        height: "100%",
         zIndex: 0,
         pointerEvents: "none",
       }}
