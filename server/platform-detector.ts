@@ -69,7 +69,7 @@ export async function detectPlatform(url: string): Promise<DetectionResult> {
       if (gen.includes("dealer")) { scores.dealercom += 2; }
     }
 
-    const scriptSrcs = [...body.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m => m[1].toLowerCase());
+    const scriptSrcs = Array.from(body.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)).map(m => m[1].toLowerCase());
     for (const src of scriptSrcs) {
       if (src.includes("dealer.com") || src.includes("ddc-")) { scores.dealercom += 2; hints.push(`script src references dealer.com/ddc`); break; }
       if (src.includes("dealeron")) { scores.dealeron += 2; hints.push(`script src references dealeron`); break; }
