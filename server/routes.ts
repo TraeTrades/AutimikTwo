@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket as WsWebSocket } from "ws";
 import { storage } from "./storage";
 import { insertScrapingJobSchema, insertVehicleSchema } from "@shared/schema";
 import puppeteerExtra from "puppeteer-extra";
@@ -18,14 +19,29 @@ puppeteerExtra.use(StealthPlugin());
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
-  // We'll set up WebSocket separately to avoid conflicts
-  const activeConnections = new Map();
+  const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
+  const activeConnections = new Map<string, WsWebSocket>();
+  let connIdCounter = 0;
 
-  // Broadcast progress updates to all connected clients  
+  wss.on("connection", (ws) => {
+    const connId = `conn-${++connIdCounter}`;
+    activeConnections.set(connId, ws);
+    console.log(`[WS] Client connected (${connId}), total: ${activeConnections.size}`);
+
+    ws.on("close", () => {
+      activeConnections.delete(connId);
+      console.log(`[WS] Client disconnected (${connId}), total: ${activeConnections.size}`);
+    });
+
+    ws.on("error", () => {
+      activeConnections.delete(connId);
+    });
+  });
+
   function broadcastProgress(jobId: string, progress: any) {
     const message = JSON.stringify({ type: 'progress', jobId, data: progress });
     activeConnections.forEach((ws) => {
-      if (ws.readyState === 1) { // OPEN
+      if (ws.readyState === WsWebSocket.OPEN) {
         ws.send(message);
       }
     });
@@ -212,13 +228,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
 
     let cfAttempts = 0;
-    while (cfAttempts < 12) {
+    const maxCfAttempts = 3;
+    while (cfAttempts < maxCfAttempts) {
       const title = await page.title();
       if (!title.includes("Just a moment") && !title.includes("Checking your browser") && !title.includes("Attention Required")) break;
-      console.log(`[Strategy 2] Cloudflare challenge, waiting... (${cfAttempts + 1}/12)`);
-      broadcast(`Waiting for security check (${cfAttempts + 1}/12)...`, 35);
+
+      if (cfAttempts === 0) {
+        const bodyText = await page.content();
+        const isCfHardBlock = bodyText.includes("cf-browser-verification") ||
+          bodyText.includes("cf_chl_opt") ||
+          bodyText.includes("ray ID") ||
+          bodyText.includes("cf-challenge-running");
+        if (isCfHardBlock) {
+          console.log("[Strategy 2] Cloudflare hard-block detected — failing fast");
+          broadcast("Cloudflare protection detected — cannot scrape from cloud servers", 40);
+          await browser.close();
+          throw new Error("This site uses Cloudflare protection which blocks automated access from cloud servers. Try a non-Cloudflare dealer site, or import a CSV/DMS file instead.");
+        }
+      }
+
+      console.log(`[Strategy 2] Cloudflare challenge, waiting... (${cfAttempts + 1}/${maxCfAttempts})`);
+      broadcast(`Waiting for security check (${cfAttempts + 1}/${maxCfAttempts})...`, 35);
       await new Promise(resolve => setTimeout(resolve, 5000));
       cfAttempts++;
+    }
+
+    const postCfTitle = await page.title();
+    if (cfAttempts >= maxCfAttempts && (postCfTitle.includes("Just a moment") || postCfTitle.includes("Checking your browser") || postCfTitle.includes("Attention Required"))) {
+      console.log("[Strategy 2] Cloudflare challenge not cleared after max attempts — failing fast");
+      broadcast("Cloudflare protection detected — cannot scrape from cloud servers", 40);
+      await browser.close();
+      throw new Error("This site uses Cloudflare protection which blocks automated access from cloud servers. Try a non-Cloudflare dealer site, or import a CSV/DMS file instead.");
     }
 
     await new Promise(resolve => setTimeout(resolve, 3000));

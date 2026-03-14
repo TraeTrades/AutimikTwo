@@ -36,7 +36,29 @@ export default function ProgressSection({ progress }: ProgressSectionProps) {
     },
   });
 
-  if (!progress || progress.completed) {
+  if (!progress) {
+    return null;
+  }
+
+  if (progress.completed && progress.error) {
+    return (
+      <Card className="mb-8 border-red-500/50" data-testid="progress-section">
+        <CardContent className="p-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-red-500/10 rounded-full flex items-center justify-center">
+              <X className="text-red-500 text-sm" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-500">Scraping Failed</h3>
+              <p className="text-sm text-muted-foreground mt-1">{progress.error}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (progress.completed) {
     return null;
   }
 

@@ -13,6 +13,7 @@ interface SidebarProps {
     status: string;
     vehiclesFound: number;
     createdAt: string;
+    errorMessage?: string | null;
   }>;
 }
 
@@ -93,6 +94,11 @@ export default function Sidebar({ stats, recentJobs }: SidebarProps) {
                   <p className="text-xs text-muted-foreground">
                     {formatTimeAgo(job.createdAt)} • {job.vehiclesFound} vehicles
                   </p>
+                  {job.status === "failed" && job.errorMessage && (
+                    <p className="text-xs text-red-500 mt-0.5 line-clamp-2">
+                      {job.errorMessage}
+                    </p>
+                  )}
                 </div>
               </div>
             )) || (
