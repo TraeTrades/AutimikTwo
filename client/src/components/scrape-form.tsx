@@ -2,19 +2,22 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Play, Info } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Search, ChevronDown, ChevronUp } from "lucide-react";
+import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { insertScrapingJobSchema } from "@shared/schema";
 import type { InsertScrapingJob } from "@shared/schema";
 
-export default function ScrapeForm() {
+interface ScrapeFormProps {
+  compact?: boolean;
+}
+
+export default function ScrapeForm({ compact }: ScrapeFormProps) {
+  const [showOptions, setShowOptions] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -46,6 +49,7 @@ export default function ScrapeForm() {
         description: "Your scraping job has been started successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/scraping-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/scraping-jobs/recent"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       form.reset();
     },
@@ -63,179 +67,78 @@ export default function ScrapeForm() {
   };
 
   return (
-    <Card className="mb-8">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-semibold">New Scraping Job</h2>
-            <p className="text-muted-foreground">Enter a dealership inventory URL to start scraping vehicle data</p>
-          </div>
-          <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
-            <Info size={16} />
-            <span>Supports major dealership platforms</span>
-          </div>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <div className="flex items-center gap-2">
+          <FormField
+            control={form.control}
+            name="url"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormControl>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                    <Input
+                      placeholder="Paste dealership inventory URL..."
+                      className={compact ? "pl-10 h-11" : "pl-10 h-12 text-base"}
+                      {...field}
+                      data-testid="input-dealership-url"
+                    />
+                  </div>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <Button
+            type="submit"
+            disabled={createJobMutation.isPending}
+            className={compact ? "h-11 px-5" : "h-12 px-6 text-base"}
+            data-testid="button-start-scraping"
+          >
+            {createJobMutation.isPending ? "Starting..." : "Scrape Inventory"}
+          </Button>
         </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dealership URL *</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="https://dealership.com/inventory"
-                        {...field}
-                        data-testid="input-dealership-url"
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="maxVehicles"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Max Vehicles</FormLabel>
-                    <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue="50">
-                      <FormControl>
-                        <SelectTrigger data-testid="select-max-vehicles">
-                          <SelectValue placeholder="Select max vehicles" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="50">50 vehicles</SelectItem>
-                        <SelectItem value="100">100 vehicles</SelectItem>
-                        <SelectItem value="200">200 vehicles</SelectItem>
-                        <SelectItem value="500">No limit</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            </div>
+        {!compact && (
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setShowOptions(!showOptions)}
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+            >
+              {showOptions ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              Options
+            </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="filters.vehicleType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vehicle Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue="all">
-                      <FormControl>
-                        <SelectTrigger data-testid="select-vehicle-type">
-                          <SelectValue placeholder="All Types" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        <SelectItem value="cars">Cars</SelectItem>
-                        <SelectItem value="trucks">Trucks</SelectItem>
-                        <SelectItem value="suvs">SUVs</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="filters.priceRange"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price Range</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue="any">
-                      <FormControl>
-                        <SelectTrigger data-testid="select-price-range">
-                          <SelectValue placeholder="Any Price" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="any">Any Price</SelectItem>
-                        <SelectItem value="under-20k">Under $20k</SelectItem>
-                        <SelectItem value="20k-50k">$20k - $50k</SelectItem>
-                        <SelectItem value="over-50k">Over $50k</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="filters.yearRange"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Year Range</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue="any">
-                      <FormControl>
-                        <SelectTrigger data-testid="select-year-range">
-                          <SelectValue placeholder="Any Year" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="any">Any Year</SelectItem>
-                        <SelectItem value="2020+">2020+</SelectItem>
-                        <SelectItem value="2015-2024">2015-2024</SelectItem>
-                        <SelectItem value="2010-2024">2010-2024</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="flex items-center justify-between pt-4">
-              <div className="flex items-center space-x-4">
+            {showOptions && (
+              <div className="mt-2 flex items-center gap-3">
                 <FormField
                   control={form.control}
-                  name="options.includeImages"
+                  name="maxVehicles"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="checkbox-include-images"
-                        />
-                      </FormControl>
-                      <FormLabel className="text-sm">Include images</FormLabel>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="options.autoExportCsv"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="checkbox-auto-export"
-                        />
-                      </FormControl>
-                      <FormLabel className="text-sm">Auto-export CSV</FormLabel>
+                    <FormItem className="flex items-center gap-2 space-y-0">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">Max vehicles:</span>
+                      <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue="50">
+                        <FormControl>
+                          <SelectTrigger className="w-[130px] h-8" data-testid="select-max-vehicles">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                          <SelectItem value="200">200</SelectItem>
+                          <SelectItem value="500">No limit</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FormItem>
                   )}
                 />
               </div>
-              <Button
-                type="submit"
-                disabled={createJobMutation.isPending}
-                className="flex items-center space-x-2"
-                data-testid="button-start-scraping"
-              >
-                <Play size={16} />
-                <span>{createJobMutation.isPending ? "Starting..." : "Start Scraping"}</span>
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+            )}
+          </div>
+        )}
+      </form>
+    </Form>
   );
 }

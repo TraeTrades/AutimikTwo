@@ -745,45 +745,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       switch (format) {
-        case "facebook":
-          // Facebook Marketplace specific format
-          const facebookData = vehicles.map((vehicle: any) => {
-            // Clean price - remove commas and dollar signs for consistent formatting
-            const cleanPrice = vehicle.price?.replace(/[$,]/g, '') || '';
-            
-            // Create a detailed description
-            const description = [
-              vehicle.title || '',
-              vehicle.mileage ? `Mileage: ${vehicle.mileage}` : '',
-              vehicle.transmission ? `Transmission: ${vehicle.transmission}` : '',
-              vehicle.interiorColor ? `Interior: ${vehicle.interiorColor}` : '',
-              'Contact us for more details and to schedule a test drive!'
-            ].filter(Boolean).join('\n');
-            
-            return {
-              title: vehicle.title || 'Vehicle',
-              description: description,
-              price: cleanPrice,
-              condition: 'Used',
-              make: vehicle.make || '',
-              model: vehicle.model || '',
-              year: vehicle.year || '',
-              mileage: vehicle.mileage?.replace(/[^\d]/g, '') || '', // Extract just the number
-              vin: vehicle.vin || '',
-              images: vehicle.imageUrl || '',
-              availability: 'In Stock',
-              dealer_name: 'CarPlace Motors',
-              dealer_location: 'Addison, Texas',
-              contact_url: vehicle.dealershipUrl || ''
-            };
-          });
-          
-          const facebookParser = new Parser();
-          const facebookCsv = facebookParser.parse(facebookData);
-          res.setHeader('Content-Type', 'text/csv');
-          res.setHeader('Content-Disposition', 'attachment; filename="facebook_marketplace_import.csv"');
-          res.send(facebookCsv);
+        case "facebook": {
+          const fbRows: any[][] = [];
+          fbRows.push(["Facebook Marketplace Bulk Upload Template"]);
+          fbRows.push(["You can create up to 50 listings at once. When you are finished, be sure to save or export this as an XLS/XLSX file."]);
+          fbRows.push([
+            'REQUIRED | Plain text (up to 150 characters',
+            'REQUIRED | A whole number in $',
+            'REQUIRED | Supported values: "New"; "Used - Like New"; "Used - Good"; "Used - Fair"',
+            'OPTIONAL | Plain text (up to 5000 characters)',
+            'OPTIONAL | Type of listing',
+            'OPTIONAL | '
+          ]);
+          fbRows.push(["TITLE", "PRICE", "CONDITION", "DESCRIPTION", "CATEGORY", "OFFER SHIPPING"]);
+
+          for (const vehicle of vehicles as any[]) {
+            const titleParts = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean);
+            const fbTitle = (titleParts.length >= 2 ? titleParts.join(" ") : vehicle.title || "Vehicle").slice(0, 150);
+
+            const priceStr = String(vehicle.price || "0").replace(/[^0-9]/g, "");
+            const fbPrice = parseInt(priceStr, 10) || 0;
+
+            const descLines = [
+              vehicle.title || "",
+              vehicle.mileage ? `Mileage: ${vehicle.mileage}` : "",
+              vehicle.exteriorColor ? `Exterior Color: ${vehicle.exteriorColor}` : "",
+              vehicle.interiorColor ? `Interior Color: ${vehicle.interiorColor}` : "",
+              vehicle.transmission ? `Transmission: ${vehicle.transmission}` : "",
+              vehicle.drivetrain ? `Drivetrain: ${vehicle.drivetrain}` : "",
+              vehicle.vin ? `VIN: ${vehicle.vin}` : "",
+              "",
+              "Contact us for more details and to schedule a test drive!"
+            ].filter((l) => l !== undefined).join("\n");
+
+            fbRows.push([
+              fbTitle,
+              fbPrice,
+              "Used - Good",
+              descLines.trim(),
+              "Vehicles & Parts//Cars & Trucks",
+              "No"
+            ]);
+          }
+
+          const fbWs = XLSX.utils.aoa_to_sheet(fbRows);
+          const fbWb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(fbWb, fbWs, "Bulk Upload");
+          const fbBuffer = XLSX.write(fbWb, { type: "buffer", bookType: "xlsx" });
+
+          res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+          res.setHeader("Content-Disposition", 'attachment; filename="facebook_marketplace_upload.xlsx"');
+          res.send(fbBuffer);
           break;
+        }
           
         case "csv":
           const parser = new Parser();

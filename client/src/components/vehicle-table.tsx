@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Filter, Download, Eye, ExternalLink, MoreHorizontal } from "lucide-react";
+import { Search, Download, Eye, ExternalLink, Share2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -19,12 +18,14 @@ import type { Vehicle } from "@shared/schema";
 
 interface VehicleTableProps {
   vehicles?: Vehicle[];
+  showFbExport?: boolean;
 }
 
-export default function VehicleTable({ vehicles = [] }: VehicleTableProps) {
+export default function VehicleTable({ vehicles = [], showFbExport }: VehicleTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(new Set());
   const [showExportModal, setShowExportModal] = useState(false);
+  const [exportDefaultFormat, setExportDefaultFormat] = useState("facebook");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -56,128 +57,102 @@ export default function VehicleTable({ vehicles = [] }: VehicleTableProps) {
     setSelectedVehicles(newSelected);
   };
 
-  const formatPrice = (price: string) => {
-    if (!price || price === "N/A") return "N/A";
-    return price;
+  const openExport = (format: string) => {
+    setExportDefaultFormat(format);
+    setShowExportModal(true);
   };
 
-  const formatMileage = (mileage: string) => {
-    if (!mileage || mileage === "N/A") return "N/A";
-    return mileage;
-  };
+  if (displayVehicles.length === 0) return null;
 
   return (
     <>
       <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <div className="p-6 border-b border-border">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div className="p-4 border-b border-border">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold">Scraped Inventory</h3>
-                <p className="text-muted-foreground">
-                  <span data-testid="vehicle-count">{displayVehicles.length}</span> vehicles found • Last updated 2 minutes ago
+                <h3 className="text-base font-semibold">Scraped Inventory</h3>
+                <p className="text-sm text-muted-foreground">
+                  <span data-testid="vehicle-count">{displayVehicles.length}</span> vehicles
                 </p>
               </div>
-              
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+
+              <div className="flex items-center gap-2">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
                   <Input
-                    placeholder="Search vehicles..."
+                    placeholder="Search..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 w-full sm:w-64"
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                    className="pl-8 h-8 w-48 text-sm"
                     data-testid="input-search-vehicles"
                   />
                 </div>
-                <Button variant="secondary" className="flex items-center space-x-2" data-testid="button-filters">
-                  <Filter size={16} />
-                  <span>Filters</span>
+                {showFbExport && (
+                  <Button
+                    size="sm"
+                    className="bg-[#1877f2] hover:bg-[#1664d9] text-white h-8 text-xs gap-1.5"
+                    onClick={() => openExport("facebook")}
+                    data-testid="button-fb-export"
+                  >
+                    <Share2 size={13} />
+                    Export for Facebook
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => openExport("csv")}
+                  data-testid="button-export"
+                >
+                  <Download size={13} />
+                  Export
                 </Button>
               </div>
             </div>
-
-            {/* Filter Tags */}
-            <div className="flex flex-wrap gap-2 mt-4">
-              <Badge variant="secondary" className="filter-chip bg-primary/10 text-primary">
-                BMW
-                <button className="ml-1 text-xs">×</button>
-              </Badge>
-              <Badge variant="secondary" className="filter-chip bg-emerald-50 text-emerald-700">
-                2020-2024
-                <button className="ml-1 text-xs">×</button>
-              </Badge>
-              <Badge variant="secondary" className="filter-chip bg-yellow-50 text-yellow-700">
-                Under $50k
-                <button className="ml-1 text-xs">×</button>
-              </Badge>
-            </div>
           </div>
 
-          {/* Table Header Controls */}
-          <div className="bg-muted/50 border-b border-border p-4">
+          <div className="bg-muted/40 border-b border-border px-4 py-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
                   <Checkbox
                     checked={selectedVehicles.size === paginatedVehicles.length && paginatedVehicles.length > 0}
                     onCheckedChange={handleSelectAll}
                     data-testid="checkbox-select-all"
                   />
-                  <span className="text-sm font-medium">Select All</span>
+                  <span className="text-xs text-muted-foreground">Select All</span>
                 </div>
-                <span className="text-sm text-muted-foreground" data-testid="selected-count">
-                  {selectedVehicles.size} selected
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button 
-                  className="bg-emerald-600 text-white hover:bg-emerald-700 flex items-center space-x-2"
-                  onClick={() => setShowExportModal(true)}
-                  data-testid="button-export"
-                >
-                  <Download size={16} />
-                  <span>Export</span>
-                </Button>
-                <Button variant="secondary" size="sm" data-testid="button-more">
-                  <MoreHorizontal size={16} />
-                </Button>
+                {selectedVehicles.size > 0 && (
+                  <span className="text-xs text-muted-foreground" data-testid="selected-count">
+                    {selectedVehicles.size} selected
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Table */}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/30">
-                  <TableHead className="w-[50px]">
-                    <Checkbox />
-                  </TableHead>
-                  <TableHead>Image</TableHead>
-                  <TableHead className="cursor-pointer hover:text-foreground">
-                    Vehicle
-                  </TableHead>
-                  <TableHead className="cursor-pointer hover:text-foreground">
-                    Price
-                  </TableHead>
-                  <TableHead className="cursor-pointer hover:text-foreground">
-                    Mileage
-                  </TableHead>
-                  <TableHead className="cursor-pointer hover:text-foreground">
-                    VIN
-                  </TableHead>
-                  <TableHead>Actions</TableHead>
+                <TableRow className="bg-muted/20">
+                  <TableHead className="w-[40px]"><Checkbox /></TableHead>
+                  <TableHead className="w-[56px]">Image</TableHead>
+                  <TableHead>Vehicle</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Mileage</TableHead>
+                  <TableHead>VIN</TableHead>
+                  <TableHead className="w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedVehicles.map((vehicle: Vehicle) => (
-                  <TableRow key={vehicle.id} className="table-hover-row" data-testid={`vehicle-row-${vehicle.id}`}>
+                  <TableRow key={vehicle.id} data-testid={`vehicle-row-${vehicle.id}`}>
                     <TableCell>
                       <Checkbox
                         checked={selectedVehicles.has(vehicle.id)}
                         onCheckedChange={(checked) => handleSelectVehicle(vehicle.id, checked as boolean)}
-                        data-testid={`checkbox-vehicle-${vehicle.id}`}
                       />
                     </TableCell>
                     <TableCell>
@@ -185,48 +160,47 @@ export default function VehicleTable({ vehicles = [] }: VehicleTableProps) {
                         <img
                           src={vehicle.imageUrl.split(',')[0].trim()}
                           alt={vehicle.title}
-                          className="w-12 h-9 object-cover rounded-md border border-border"
-                          data-testid={`image-vehicle-${vehicle.id}`}
+                          className="w-12 h-9 object-cover rounded border border-border"
                         />
                       ) : (
-                        <div className="w-12 h-9 bg-muted rounded-md border border-border flex items-center justify-center">
-                          <span className="text-xs text-muted-foreground">No Image</span>
+                        <div className="w-12 h-9 bg-muted rounded border border-border flex items-center justify-center">
+                          <span className="text-[10px] text-muted-foreground">N/A</span>
                         </div>
                       )}
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <div className="font-medium text-foreground" data-testid={`title-vehicle-${vehicle.id}`}>
-                          {vehicle.title}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {vehicle.type} • {vehicle.transmission} • {vehicle.drivetrain}
-                        </div>
+                      <div className="font-medium text-sm" data-testid={`title-vehicle-${vehicle.id}`}>{vehicle.title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {[vehicle.type, vehicle.transmission, vehicle.drivetrain].filter(Boolean).join(" · ")}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="font-semibold text-foreground" data-testid={`price-vehicle-${vehicle.id}`}>
-                        {formatPrice(vehicle.price || '')}
+                      <span className="font-semibold text-sm" data-testid={`price-vehicle-${vehicle.id}`}>
+                        {vehicle.price || "N/A"}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-foreground" data-testid={`mileage-vehicle-${vehicle.id}`}>
-                        {formatMileage(vehicle.mileage || '')}
+                      <span className="text-sm" data-testid={`mileage-vehicle-${vehicle.id}`}>
+                        {vehicle.mileage || "N/A"}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono text-sm text-muted-foreground" data-testid={`vin-vehicle-${vehicle.id}`}>
+                      <span className="font-mono text-xs text-muted-foreground" data-testid={`vin-vehicle-${vehicle.id}`}>
                         {vehicle.vin}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80" data-testid={`button-view-${vehicle.id}`}>
-                          <Eye size={16} />
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                          <Eye size={14} />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-emerald-600 hover:text-emerald-700" data-testid={`button-external-${vehicle.id}`}>
-                          <ExternalLink size={16} />
-                        </Button>
+                        {vehicle.dealershipUrl && (
+                          <a href={vehicle.dealershipUrl} target="_blank" rel="noopener noreferrer">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                              <ExternalLink size={14} />
+                            </Button>
+                          </a>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -235,60 +209,56 @@ export default function VehicleTable({ vehicles = [] }: VehicleTableProps) {
             </Table>
           </div>
 
-          {/* Table Footer */}
-          <div className="bg-muted/30 border-t border-border p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
-              <div className="text-sm text-muted-foreground" data-testid="pagination-info">
-                Showing <span className="font-medium">{startIndex + 1}</span> to{" "}
-                <span className="font-medium">{Math.min(startIndex + itemsPerPage, displayVehicles.length)}</span> of{" "}
-                <span className="font-medium">{displayVehicles.length}</span> results
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  data-testid="button-previous-page"
-                >
-                  Previous
-                </Button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map((page) => (
+          {totalPages > 1 && (
+            <div className="border-t border-border px-4 py-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground" data-testid="pagination-info">
+                  {startIndex + 1}–{Math.min(startIndex + itemsPerPage, displayVehicles.length)} of {displayVehicles.length}
+                </span>
+                <div className="flex items-center gap-1">
                   <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
+                    variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(page)}
-                    data-testid={`button-page-${page}`}
+                    className="h-7 text-xs"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    data-testid="button-previous-page"
                   >
-                    {page}
+                    Prev
                   </Button>
-                ))}
-                {totalPages > 5 && (
-                  <>
-                    <span className="text-muted-foreground">...</span>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map((page) => (
                     <Button
-                      variant="outline"
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
                       size="sm"
-                      onClick={() => setCurrentPage(totalPages)}
-                      data-testid={`button-page-${totalPages}`}
+                      className="h-7 w-7 p-0 text-xs"
+                      onClick={() => setCurrentPage(page)}
                     >
-                      {totalPages}
+                      {page}
                     </Button>
-                  </>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  data-testid="button-next-page"
-                >
-                  Next
-                </Button>
+                  ))}
+                  {totalPages > 5 && (
+                    <>
+                      <span className="text-muted-foreground text-xs">...</span>
+                      <Button variant="outline" size="sm" className="h-7 w-7 p-0 text-xs" onClick={() => setCurrentPage(totalPages)}>
+                        {totalPages}
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    data-testid="button-next-page"
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
@@ -296,6 +266,7 @@ export default function VehicleTable({ vehicles = [] }: VehicleTableProps) {
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
         selectedVehicleIds={Array.from(selectedVehicles)}
+        defaultFormat={exportDefaultFormat}
       />
     </>
   );
