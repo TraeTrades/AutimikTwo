@@ -155,6 +155,32 @@ async function fillDescription(text) {
   }
 }
 
+function fetchImageViaBackground(url) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { type: "FETCH_IMAGE", payload: { url } },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          return reject(new Error(chrome.runtime.lastError.message));
+        }
+        if (!response || !response.success) {
+          return reject(new Error((response && response.error) || "Unknown fetch error"));
+        }
+        resolve(response);
+      }
+    );
+  });
+}
+
+function dataUrlToBlob(dataUrl) {
+  const parts = dataUrl.split(",");
+  const mime = parts[0].match(/:(.*?);/)[1];
+  const raw = atob(parts[1]);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
 async function uploadPhotos(imageUrls) {
   if (!imageUrls || imageUrls.length === 0) {
     log("No images to upload");
@@ -162,15 +188,15 @@ async function uploadPhotos(imageUrls) {
   }
   try {
     const fileInput = await waitFor(['input[type="file"][accept*="image"]']);
-    log("Found file input, fetching", imageUrls.length, "images");
+    log("Found file input, fetching", imageUrls.length, "images via background");
     const files = [];
     for (const url of imageUrls) {
       try {
-        log("Fetching image:", url);
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const fileName = url.split("/").pop() || "vehicle.jpg";
-        const file = new File([blob], fileName, { type: blob.type || "image/jpeg" });
+        log("Fetching image via background:", url);
+        const result = await fetchImageViaBackground(url);
+        const blob = dataUrlToBlob(result.dataUrl);
+        const fileName = url.split("/").pop()?.split("?")[0] || "vehicle.jpg";
+        const file = new File([blob], fileName, { type: result.mimeType || blob.type || "image/jpeg" });
         files.push(file);
       } catch (e) {
         log("Failed to fetch image:", url, e.message);
@@ -249,10 +275,11 @@ async function fillForm(vehicle) {
   await fillDescription(description);
 
   const imageUrls = [];
-  if (vehicle.imageUrls && vehicle.imageUrls.length > 0) {
+  if (vehicle.imageUrls && Array.isArray(vehicle.imageUrls) && vehicle.imageUrls.length > 0) {
     imageUrls.push(...vehicle.imageUrls);
-  } else if (vehicle.imageUrl) {
-    imageUrls.push(vehicle.imageUrl);
+  } else if (typeof vehicle.imageUrl === "string" && vehicle.imageUrl.trim().length > 0) {
+    const parsed = vehicle.imageUrl.split(/[\s,;|]+/).filter((u) => u.startsWith("http"));
+    imageUrls.push(...parsed);
   }
   await uploadPhotos(imageUrls);
 

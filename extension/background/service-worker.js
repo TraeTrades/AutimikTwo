@@ -92,6 +92,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    case "FETCH_IMAGE": {
+      const url = payload.url;
+      fetch(url)
+        .then((response) => {
+          if (!response.ok) throw new Error("HTTP " + response.status);
+          return response.blob();
+        })
+        .then((blob) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            sendResponse({
+              success: true,
+              dataUrl: reader.result,
+              mimeType: blob.type || "image/jpeg",
+            });
+          };
+          reader.readAsDataURL(blob);
+        })
+        .catch((err) => {
+          sendResponse({ success: false, error: err.message });
+        });
+      return true;
+    }
+
     default:
       sendResponse({ success: false, error: "Unknown message type: " + type });
       return true;

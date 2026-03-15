@@ -122,7 +122,14 @@ function processCSV(text) {
     for (const [field, colIdx] of Object.entries(mapping)) {
       let val = fields[colIdx] !== undefined ? fields[colIdx].trim() : "";
       if (field === "imageUrls" && val) {
-        vehicle.imageUrls = val.split(/[|;]/).map((u) => u.trim()).filter(Boolean);
+        vehicle.imageUrls = val.split(/[\s,|;]+/).map((u) => u.trim()).filter((u) => u.startsWith("http"));
+      } else if (field === "imageUrl" && val) {
+        const urls = val.split(/[\s,|;]+/).map((u) => u.trim()).filter((u) => u.startsWith("http"));
+        if (urls.length > 1) {
+          vehicle.imageUrls = (vehicle.imageUrls || []).concat(urls);
+        } else {
+          vehicle[field] = val;
+        }
       } else {
         vehicle[field] = val;
       }
