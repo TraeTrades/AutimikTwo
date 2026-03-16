@@ -1,4 +1,7 @@
 var FillEngine = (function () {
+  var MAX_PHOTOS = 20;
+  var BATCH_SIZE = 5;
+
   function log(...args) {
     console.log("[Autimik:FillEngine]", ...args);
   }
@@ -12,7 +15,7 @@ var FillEngine = (function () {
   }
 
   function waitFor(selectors, timeout) {
-    timeout = timeout || 12000;
+    timeout = timeout || 8000;
     var selectorList = Array.isArray(selectors) ? selectors : [selectors];
     return new Promise(function (resolve, reject) {
       for (var i = 0; i < selectorList.length; i++) {
@@ -75,14 +78,96 @@ var FillEngine = (function () {
     return valueMap[key] || key;
   }
 
-  async function fillInputField(selectors, value, options) {
+  async function typeCharByChar(element, text) {
+    var str = String(text);
+    for (var i = 0; i < str.length; i++) {
+      var ch = str[i];
+      element.dispatchEvent(new KeyboardEvent("keydown", { key: ch, bubbles: true }));
+      element.dispatchEvent(new KeyboardEvent("keypress", { key: ch, bubbles: true }));
+
+      var nativeSetter = Object.getOwnPropertyDescriptor(
+        element.tagName === "TEXTAREA"
+          ? window.HTMLTextAreaElement.prototype
+          : window.HTMLInputElement.prototype,
+        "value"
+      );
+      if (nativeSetter && nativeSetter.set) {
+        nativeSetter.set.call(element, str.substring(0, i + 1));
+      } else {
+        element.value = str.substring(0, i + 1);
+      }
+
+      element.dispatchEvent(new InputEvent("input", { bubbles: true, data: ch, inputType: "insertText" }));
+      element.dispatchEvent(new KeyboardEvent("keyup", { key: ch, bubbles: true }));
+
+      if (i < str.length - 1) {
+        await sleep(15);
+      }
+    }
+  }
+
+  async function fillInputReact(selectors, value, options) {
     options = options || {};
     var label = options.label || "field";
+    var timeout = options.timeout || 8000;
     if (!value) return { field: label, status: "skipped" };
 
     for (var attempt = 1; attempt <= 3; attempt++) {
       try {
-        var el = await waitFor(selectors, 8000);
+        var el = await waitFor(selectors, timeout);
+        el.scrollIntoView({ block: "center", behavior: "instant" });
+        await sleep(100);
+
+        el.focus();
+        el.click();
+        await sleep(80);
+
+        el.dispatchEvent(new KeyboardEvent("keydown", { key: "a", code: "KeyA", ctrlKey: true, bubbles: true }));
+        document.execCommand("selectAll", false, null);
+        await sleep(30);
+
+        await typeCharByChar(el, String(value));
+        await sleep(150);
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+        el.blur();
+        await sleep(200);
+
+        var actual = el.value || "";
+        var expectedNorm = normalizeForVerify(String(value)).substring(0, 6);
+        if (expectedNorm.length > 0 && normalizeForVerify(actual).includes(expectedNorm)) {
+          log("Filled (react)", label, "with:", value);
+          return { field: label, status: "filled", value: value };
+        }
+
+        setNativeValue(el, String(value));
+        await sleep(200);
+        el.blur();
+        await sleep(100);
+
+        var recheck = el.value || "";
+        if (normalizeForVerify(recheck).includes(expectedNorm)) {
+          log("Filled (react fallback)", label, "with:", value);
+          return { field: label, status: "filled", value: value };
+        }
+
+        log("Verify failed for", label, "expected:", value, "got:", recheck);
+      } catch (e) {
+        if (attempt === 3) return { field: label, status: "failed", error: e.message };
+        await sleep(500);
+      }
+    }
+    return { field: label, status: "failed", error: "Exhausted retries" };
+  }
+
+  async function fillInputField(selectors, value, options) {
+    options = options || {};
+    var label = options.label || "field";
+    var timeout = options.timeout || 8000;
+    if (!value) return { field: label, status: "skipped" };
+
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      try {
+        var el = await waitFor(selectors, timeout);
         el.scrollIntoView({ block: "center", behavior: "instant" });
         el.focus();
         await sleep(100);
@@ -119,13 +204,14 @@ var FillEngine = (function () {
     options = options || {};
     var label = options.label || "dropdown";
     var valueMap = options.valueMap;
+    var timeout = options.timeout || 4000;
     if (!value) {
       log("Skipping empty dropdown:", label);
       return { field: label, status: "skipped" };
     }
     try {
       var resolvedValue = resolveValueMap(value, valueMap);
-      var trigger = await waitFor(selectors, 8000);
+      var trigger = await waitFor(selectors, timeout);
       log("Opening dropdown:", label);
       trigger.click();
       await sleep(400);
@@ -173,13 +259,14 @@ var FillEngine = (function () {
     options = options || {};
     var label = options.label || "select";
     var valueMap = options.valueMap;
+    var timeout = options.timeout || 4000;
     if (!value) {
       log("Skipping empty select:", label);
       return { field: label, status: "skipped" };
     }
     try {
       var resolvedValue = resolveValueMap(value, valueMap);
-      var selectEl = await waitFor(selectors, 8000);
+      var selectEl = await waitFor(selectors, timeout);
       if (selectEl.tagName !== "SELECT") {
         return await fillDropdownField(selectors, value, options);
       }
@@ -216,12 +303,18 @@ var FillEngine = (function () {
   async function fillDescriptionField(selectors, text, options) {
     options = options || {};
     var label = options.label || "description";
+    var timeout = options.timeout || 4000;
     if (!text) return { field: label, status: "skipped" };
     try {
-      var el = await waitFor(selectors, 8000);
+      var el = await waitFor(selectors, timeout);
       log("Filling description");
       if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
-        setNativeValue(el, text);
+        el.focus();
+        el.click();
+        await sleep(80);
+        await typeCharByChar(el, text);
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+        el.blur();
       } else {
         el.focus();
         el.textContent = "";
@@ -262,6 +355,27 @@ var FillEngine = (function () {
     return new Blob([arr], { type: mime });
   }
 
+  async function fetchBatch(urls) {
+    var results = await Promise.allSettled(
+      urls.map(function (url) {
+        return fetchImageViaBackground(url).then(function (result) {
+          var blob = dataUrlToBlob(result.dataUrl);
+          var fileName = url.split("/").pop().split("?")[0] || "vehicle.jpg";
+          return new File([blob], fileName, { type: result.mimeType || blob.type || "image/jpeg" });
+        });
+      })
+    );
+    var files = [];
+    for (var i = 0; i < results.length; i++) {
+      if (results[i].status === "fulfilled") {
+        files.push(results[i].value);
+      } else {
+        log("Failed to fetch image:", urls[i], results[i].reason && results[i].reason.message);
+      }
+    }
+    return files;
+  }
+
   async function uploadPhotos(imageUrls, photoConfig) {
     if (!imageUrls || imageUrls.length === 0) {
       log("No images to upload");
@@ -271,30 +385,32 @@ var FillEngine = (function () {
       log("Photo upload disabled for this adapter");
       return { field: "photos", status: "skipped" };
     }
+
+    var capped = imageUrls.slice(0, MAX_PHOTOS);
+    if (imageUrls.length > MAX_PHOTOS) {
+      log("Capping images from", imageUrls.length, "to", MAX_PHOTOS);
+    }
+
     try {
       var selector = (photoConfig && photoConfig.selector) || 'input[type="file"][accept*="image"]';
       var fileInput = await waitFor([selector], 8000);
-      log("Found file input, fetching", imageUrls.length, "images via background");
-      var files = [];
-      for (var i = 0; i < imageUrls.length; i++) {
-        try {
-          log("Fetching image via background:", imageUrls[i]);
-          var result = await fetchImageViaBackground(imageUrls[i]);
-          var blob = dataUrlToBlob(result.dataUrl);
-          var fileName = imageUrls[i].split("/").pop().split("?")[0] || "vehicle.jpg";
-          var file = new File([blob], fileName, { type: result.mimeType || blob.type || "image/jpeg" });
-          files.push(file);
-        } catch (e) {
-          log("Failed to fetch image:", imageUrls[i], e.message);
-        }
+      log("Found file input, fetching", capped.length, "images in batches of", BATCH_SIZE);
+
+      var allFiles = [];
+      for (var b = 0; b < capped.length; b += BATCH_SIZE) {
+        var batch = capped.slice(b, b + BATCH_SIZE);
+        log("Fetching batch", Math.floor(b / BATCH_SIZE) + 1, "of", Math.ceil(capped.length / BATCH_SIZE));
+        var batchFiles = await fetchBatch(batch);
+        allFiles.push.apply(allFiles, batchFiles);
       }
-      if (files.length > 0) {
+
+      if (allFiles.length > 0) {
         var dt = new DataTransfer();
-        files.forEach(function (f) { dt.items.add(f); });
+        allFiles.forEach(function (f) { dt.items.add(f); });
         fileInput.files = dt.files;
         fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-        log("Uploaded", files.length, "photos");
-        return { field: "photos", status: "filled", value: files.length + " photos" };
+        log("Uploaded", allFiles.length, "photos");
+        return { field: "photos", status: "filled", value: allFiles.length + " photos" };
       }
       return { field: "photos", status: "failed", error: "No images fetched successfully" };
     } catch (e) {
@@ -330,16 +446,17 @@ var FillEngine = (function () {
       var parsed = vehicle.imageUrl.split(/[\s,;|]+/).filter(function (u) { return u.startsWith("http"); });
       urls.push.apply(urls, parsed);
     }
-    return urls;
+    return urls.slice(0, MAX_PHOTOS);
   }
 
   async function fillInputFieldStandard(selectors, value, options) {
     options = options || {};
     var label = options.label || "field";
+    var timeout = options.timeout || 8000;
     if (!value) return { field: label, status: "skipped" };
 
     try {
-      var el = await waitFor(selectors, 8000);
+      var el = await waitFor(selectors, timeout);
       el.scrollIntoView({ block: "center", behavior: "instant" });
       el.focus();
       await sleep(100);
@@ -362,11 +479,15 @@ var FillEngine = (function () {
     var fieldOptions = {
       label: options.label || fieldConfig.label || "field",
       valueMap: fieldConfig.valueMap,
-      afterDelay: options.afterDelay
+      afterDelay: options.afterDelay,
+      timeout: options.timeout
     };
 
     switch (fieldConfig.type) {
       case "input":
+        if (strategy === "react_controlled") {
+          return await fillInputReact(selectors, value, fieldOptions);
+        }
         if (strategy === "standard_html") {
           return await fillInputFieldStandard(selectors, value, fieldOptions);
         }
@@ -378,6 +499,9 @@ var FillEngine = (function () {
       case "description":
         return await fillDescriptionField(selectors, value, fieldOptions);
       default:
+        if (strategy === "react_controlled") {
+          return await fillInputReact(selectors, value, fieldOptions);
+        }
         if (strategy === "standard_html") {
           return await fillInputFieldStandard(selectors, value, fieldOptions);
         }
@@ -393,6 +517,7 @@ var FillEngine = (function () {
     setNativeValue: setNativeValue,
     resolveValueMap: resolveValueMap,
     fillInputField: fillInputField,
+    fillInputReact: fillInputReact,
     fillDropdownField: fillDropdownField,
     fillSelectField: fillSelectField,
     fillDescriptionField: fillDescriptionField,

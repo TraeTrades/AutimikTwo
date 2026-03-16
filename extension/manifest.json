@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Autimik - Multi-Site Smart Lister",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Auto-fill vehicle listings on Facebook Marketplace, Craigslist & OfferUp. Upload your inventory CSV and list in one click.",
   "permissions": ["storage", "activeTab", "scripting", "tabs"],
   "host_permissions": ["https://www.facebook.com/*", "https://*.craigslist.org/*", "https://offerup.com/*", "https://www.offerup.com/*"],

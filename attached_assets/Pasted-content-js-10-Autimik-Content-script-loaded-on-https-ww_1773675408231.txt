@@ -1,0 +1,77 @@
+content.js:10 [Autimik] Content script loaded on: https://www.facebook.com/marketplace/create/vehicle
+aWDdrS-FLre.js:256 
+Stop!
+aWDdrS-FLre.js:256 
+This is a browser feature intended for developers. If someone told you to copy-paste something here to enable a Facebook feature or "hack" someone's account, it's a scam and will give them access to your Facebook account.
+aWDdrS-FLre.js:256 
+See https://www.facebook.com/selfxss for more information.
+aWDdrS-FLre.js:256 
+
+content.js:10 [Autimik] Received FILL_FORM message
+content.js:10 [Autimik] Starting form fill for: 2015 Mercedes-Benz C-Class
+content.js:10 [Autimik] Matched adapter: Facebook Marketplace
+content.js:10 [Autimik] Filling with adapter: Facebook Marketplace
+fill-engine.js:3 [Autimik:FillEngine] Could not select dropdown condition : Timeout waiting for: [aria-label="Condition"] | [aria-label*="Condition"]
+fill-engine.js:3 [Autimik:FillEngine] Could not select dropdown fuelType : Timeout waiting for: [aria-label="Fuel type"] | [aria-label*="Fuel type"]
+fill-engine.js:3 [Autimik:FillEngine] Could not select dropdown transmission : Timeout waiting for: [aria-label="Transmission"] | [aria-label*="Transmission"]
+fill-engine.js:3 [Autimik:FillEngine] Skipping empty dropdown: drivetrain
+fill-engine.js:3 [Autimik:FillEngine] Could not select dropdown exteriorColor : Timeout waiting for: [aria-label="Exterior color"] | [aria-label*="Exterior color"]
+fill-engine.js:3 [Autimik:FillEngine] Could not select dropdown interiorColor : Timeout waiting for: [aria-label="Interior color"] | [aria-label*="Interior color"]
+fill-engine.js:3 [Autimik:FillEngine] Could not select dropdown bodyStyle : Timeout waiting for: [aria-label="Vehicle type"] | [aria-label*="Vehicle type"]
+fill-engine.js:3 [Autimik:FillEngine] Could not fill description: Timeout waiting for: textarea[aria-label="Description"] | div[role="textbox"][aria-label*="escription"] | div[contenteditable="true"]
+fill-engine.js:3 [Autimik:FillEngine] Found element immediately: input[type="file"][accept*="image"]
+fill-engine.js:3 [Autimik:FillEngine] Found file input, fetching 49 images via background
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202501-80d5e6bc1f1243009a2fc5d418f2870a/202509-7d1ea8b6764e4ebb8197f041429063c3.jpg
+fill-engine.js:3 [Autimik:FillEngine] Failed to fetch image: https://imagesdl.dealercenter.net/1024/768/202501-80d5e6bc1f1243009a2fc5d418f2870a/202509-7d1ea8b6764e4ebb8197f041429063c3.jpg Failed to fetch
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-58cdcfa737e44b43abb85d59a9b75867.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-d1fc17afe2f244a89346aeeafcc7060f.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-ee6b6cc662a14ead8878bd71c0c9e876.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-9f76fa0a415048ec95fee270dacd4ff1.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-8364ec08e3534488b0e57c06024fb8d1.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-4add2b90209141b1b8a16e7fe07e7bbf.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-05bb5739ca4946b6be1b260cbee03877.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-1f82cea8f897459cbbbdc02e7b75f59f.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-7b1e6ea1a9f849799c6c1ee4001e76bd.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-0c8fc2ef2dbe440aa2824a0563e57931.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-f2c93daf6fe64d609143a59c098347a6.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-cba2e13cda844c69b278db899352f783.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-e73a37f260f141e2a53662840dc307b1.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-47d375bacb05449db63ba994d7a7a539.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-292300d15f8b4b3787f385edfc103b6a.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-4a028734d73f4563b91d7451d441b9da.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-a6cf141a5bf44f9aa11baf62099d7931.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-6b13351998c0405c923ee8ed699c0ad9.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-ca16d2237c7d4bd899dcc222bcc933c7.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-bf335ae1fc6b48b8941de615ff4f4ec8.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-7cfeba77c56c46d7b260ea9616fae4c2.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-f4263b960adf418ea997106c80c73522.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-4b10112861a84942addde091b6e36807.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-42d05149863040a9b02d689261776e0f.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-3899cf629e06428aa4eb67af86a80fdf.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-781c32c147434d4e99d612a583790599.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-5948f7530a2245da9955ddb792b4500a.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-1d8e1d54d703449ab4165a5763470482.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-a3f8e9034eb54ceda60890a9ededa1c8.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-3d5349ea49dd4a08aed573e45ec6eaf7.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-ab8031a42f954185adabf119a8102aa3.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-18cf12c2616448a59c7444b95a9ed01f.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-59a16e445de845d3ab7687ae3100e8e4.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-36f4998b95fd4d59ab75cbb2c3d4c5a3.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-feaef93523ff471797e8965c01e0888f.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-6293bdf56a254c4fae97fb868876d0ac.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-5207b79d1d184d3d828e3342f58ceb3e.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-847f70d88e764c249ba9a915eae6ec9b.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-2e4473f168c0487d9b12b0cd55ee83a9.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-7427eabdcbcc4d80b72d989eda952eec.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-e8ac8c18be034e3d9ebc203f4d7a2beb.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-05f312a9e011441db2291b819f4bcb6f.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-65e4416e94dc472590be018577f45b37.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-ffb38342d8414688bb74c096994362de.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-571dc7697ef14aad86d2b304f161aac7.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-35d7c2c84ff24cbd915bd2f32146f252.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-fda1c936feb0465ab686dcfe0fb94005.jpg
+fill-engine.js:3 [Autimik:FillEngine] Fetching image via background: https://imagesdl.dealercenter.net/1024/768/202509-a41762a63cce4697a7d9583072596cad.jpg
+fill-engine.js:3 [Autimik:FillEngine] Uploaded 48 photos
+content.js:10 [Autimik] Form fill complete. Settling...
+content.js:10 [Autimik] Failed to fill required fields: price, year, make, model
+content.js:10 [Autimik] Form fill error: Failed to fill required fields: price, year, make, model
