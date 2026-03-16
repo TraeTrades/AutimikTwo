@@ -21,7 +21,18 @@ var ADAPTERS = {
       "vehicleType": {
         "selector": ["[aria-label=\"Vehicle type\"]", "[aria-label*=\"Vehicle type\"]"],
         "type": "dropdown",
-        "default": "car/truck"
+        "default": "cars/trucks",
+        "valueMap": {
+          "car": "cars/trucks",
+          "truck": "cars/trucks",
+          "car/truck": "cars/trucks",
+          "cars/trucks": "cars/trucks",
+          "motorcycle": "motorcycles",
+          "boat": "boats",
+          "rv": "rvs/campers",
+          "camper": "rvs/campers",
+          "powersport": "powersports"
+        }
       },
       "year": {
         "selector": ["[aria-label=\"Year\"]", "[aria-label*=\"Year\"]"],
@@ -368,7 +379,7 @@ function resolveVehicleValue(vehicle, fieldName, adapterField) {
   }
   var value = vehicle[fieldName];
   if (!value && fieldName === "vehicleType") {
-    value = adapterField && adapterField.default ? adapterField.default : "car/truck";
+    value = adapterField && adapterField.default ? adapterField.default : "cars/trucks";
   }
   if (!value && fieldName === "condition") {
     value = adapterField && adapterField.default ? adapterField.default : "used";

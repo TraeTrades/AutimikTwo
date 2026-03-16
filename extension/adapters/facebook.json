@@ -20,7 +20,18 @@
     "vehicleType": {
       "selector": ["[aria-label=\"Vehicle type\"]", "[aria-label*=\"Vehicle type\"]"],
       "type": "dropdown",
-      "default": "car/truck"
+      "default": "cars/trucks",
+      "valueMap": {
+        "car": "cars/trucks",
+        "truck": "cars/trucks",
+        "car/truck": "cars/trucks",
+        "cars/trucks": "cars/trucks",
+        "motorcycle": "motorcycles",
+        "boat": "boats",
+        "rv": "rvs/campers",
+        "camper": "rvs/campers",
+        "powersport": "powersports"
+      }
     },
     "year": {
       "selector": ["[aria-label=\"Year\"]", "[aria-label*=\"Year\"]"],
