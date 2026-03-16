@@ -568,8 +568,13 @@ async function fillForm(vehicle) {
     summary = await fillWithAI(vehicle);
   }
 
+  var criticalFields = REQUIRED_FIELDS;
+  if (adapter) {
+    criticalFields = (adapter.initFields || []).concat(adapter.requiredFields || REQUIRED_FIELDS);
+  }
+
   var requiredFailed = summary.failedFields.filter(function (f) {
-    return REQUIRED_FIELDS.indexOf(f) !== -1;
+    return criticalFields.indexOf(f) !== -1;
   });
   if (requiredFailed.length > 0) {
     var msg = "Failed to fill required fields: " + requiredFailed.join(", ");
