@@ -1,28 +1,34 @@
 {
   "id": "facebook",
   "name": "Facebook Marketplace",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "match": ["*://www.facebook.com/marketplace/create/vehicle*"],
   "strategy": "react_controlled",
   "timing": {
     "afterField": 500,
-    "afterDropdown": 300,
+    "afterDropdown": 400,
     "afterDescription": 200,
     "afterPhotos": 1500,
-    "settle": 1500
+    "settle": 1500,
+    "phaseSettle": 2000,
+    "vehicleTypeSettle": 2500
   },
+  "initFields": ["vehicleType"],
+  "requiredFields": ["year", "make", "model", "mileage", "price"],
+  "optionalFields": ["bodyStyle", "exteriorColor", "interiorColor", "condition", "fuelType", "transmission", "description"],
   "fields": {
-    "price": {
-      "selector": ["input[aria-label=\"Price\"]", "input[placeholder*=\"Price\"]", "input[name*=\"price\"]"],
-      "type": "input"
+    "vehicleType": {
+      "selector": ["[aria-label=\"Vehicle type\"]", "[aria-label*=\"Vehicle type\"]"],
+      "type": "dropdown",
+      "default": "car/truck"
     },
     "year": {
-      "selector": ["input[aria-label=\"Year\"]", "input[placeholder*=\"Year\"]"],
-      "type": "input"
+      "selector": ["[aria-label=\"Year\"]", "[aria-label*=\"Year\"]"],
+      "type": "dropdown"
     },
     "make": {
-      "selector": ["input[aria-label=\"Make\"]", "input[placeholder*=\"Make\"]"],
-      "type": "input"
+      "selector": ["[aria-label=\"Make\"]", "[aria-label*=\"Make\"]"],
+      "type": "dropdown"
     },
     "model": {
       "selector": ["input[aria-label=\"Model\"]", "input[placeholder*=\"Model\"]"],
@@ -32,8 +38,39 @@
       "selector": ["input[aria-label=\"Mileage\"]", "input[placeholder*=\"Mileage\"]", "input[placeholder*=\"miles\"]"],
       "type": "input"
     },
+    "price": {
+      "selector": ["input[aria-label=\"Price\"]", "input[placeholder*=\"Price\"]", "input[name*=\"price\"]"],
+      "type": "input"
+    },
+    "bodyStyle": {
+      "selector": ["[aria-label=\"Body style\"]", "[aria-label*=\"Body style\"]"],
+      "type": "dropdown",
+      "valueMap": {
+        "suv": "suv",
+        "crossover": "suv",
+        "cuv": "suv",
+        "truck": "truck",
+        "pickup": "truck",
+        "pickup truck": "truck",
+        "sedan": "sedan",
+        "coupe": "coupe",
+        "convertible": "convertible",
+        "minivan": "minivan",
+        "van": "van",
+        "wagon": "wagon",
+        "hatchback": "hatchback"
+      }
+    },
+    "exteriorColor": {
+      "selector": ["[aria-label=\"Exterior color\"]", "[aria-label*=\"Exterior color\"]"],
+      "type": "dropdown"
+    },
+    "interiorColor": {
+      "selector": ["[aria-label=\"Interior color\"]", "[aria-label*=\"Interior color\"]"],
+      "type": "dropdown"
+    },
     "condition": {
-      "selector": ["[aria-label=\"Condition\"]", "[aria-label*=\"Condition\"]"],
+      "selector": ["[aria-label=\"Vehicle condition\"]", "[aria-label*=\"Vehicle condition\"]", "[aria-label=\"Condition\"]", "[aria-label*=\"Condition\"]"],
       "type": "dropdown",
       "valueMap": {
         "new": "new",
@@ -76,49 +113,15 @@
         "cvt": "cvt transmission"
       }
     },
-    "drivetrain": {
-      "selector": ["[aria-label=\"Drivetrain\"]", "[aria-label*=\"Drivetrain\"]"],
-      "type": "dropdown",
-      "valueMap": {
-        "awd": "all-wheel drive",
-        "4wd": "four-wheel drive",
-        "4x4": "four-wheel drive",
-        "fwd": "front-wheel drive",
-        "rwd": "rear-wheel drive",
-        "2wd": "rear-wheel drive"
-      }
-    },
-    "exteriorColor": {
-      "selector": ["[aria-label=\"Exterior color\"]", "[aria-label*=\"Exterior color\"]"],
-      "type": "dropdown"
-    },
-    "interiorColor": {
-      "selector": ["[aria-label=\"Interior color\"]", "[aria-label*=\"Interior color\"]"],
-      "type": "dropdown"
-    },
-    "bodyStyle": {
-      "selector": ["[aria-label=\"Vehicle type\"]", "[aria-label*=\"Vehicle type\"]"],
-      "type": "dropdown",
-      "valueMap": {
-        "suv": "suv / crossover",
-        "crossover": "suv / crossover",
-        "cuv": "suv / crossover",
-        "truck": "truck",
-        "pickup": "truck",
-        "pickup truck": "truck",
-        "sedan": "sedan",
-        "coupe": "coupe",
-        "convertible": "convertible",
-        "minivan": "van / minivan",
-        "van": "van / minivan",
-        "cargo van": "van / minivan",
-        "passenger van": "van / minivan",
-        "wagon": "wagon",
-        "hatchback": "hatchback"
-      }
-    },
     "description": {
-      "selector": ["textarea[aria-label=\"Description\"]", "div[role=\"textbox\"][aria-label*=\"escription\"]", "div[contenteditable=\"true\"]"],
+      "selector": [
+        "textarea[aria-label=\"Description\"]",
+        "[aria-label*=\"Description\"]",
+        "[data-testid*=\"description\"]",
+        "div[role=\"textbox\"][aria-label*=\"escription\"]",
+        "div[contenteditable=\"true\"]",
+        "textarea"
+      ],
       "type": "description"
     }
   },

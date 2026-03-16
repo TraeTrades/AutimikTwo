@@ -2,31 +2,34 @@ var ADAPTERS = {
   facebook: {
     "id": "facebook",
     "name": "Facebook Marketplace",
-    "version": "1.1.0",
+    "version": "2.0.0",
     "match": ["*://www.facebook.com/marketplace/create/vehicle*"],
     "strategy": "react_controlled",
     "timing": {
       "afterField": 500,
-      "afterDropdown": 300,
+      "afterDropdown": 400,
       "afterDescription": 200,
       "afterPhotos": 1500,
       "settle": 1500,
-      "phaseSettle": 1200
+      "phaseSettle": 2000,
+      "vehicleTypeSettle": 2500
     },
-    "requiredFields": ["price", "year", "make", "model", "mileage"],
-    "optionalFields": ["vin", "title", "condition", "fuelType", "transmission", "drivetrain", "exteriorColor", "interiorColor", "bodyStyle", "description"],
+    "initFields": ["vehicleType"],
+    "requiredFields": ["year", "make", "model", "mileage", "price"],
+    "optionalFields": ["bodyStyle", "exteriorColor", "interiorColor", "condition", "fuelType", "transmission", "description"],
     "fields": {
-      "price": {
-        "selector": ["input[aria-label=\"Price\"]", "input[placeholder*=\"Price\"]", "input[name*=\"price\"]"],
-        "type": "input"
+      "vehicleType": {
+        "selector": ["[aria-label=\"Vehicle type\"]", "[aria-label*=\"Vehicle type\"]"],
+        "type": "dropdown",
+        "default": "car/truck"
       },
       "year": {
-        "selector": ["input[aria-label=\"Year\"]", "input[placeholder*=\"Year\"]"],
-        "type": "input"
+        "selector": ["[aria-label=\"Year\"]", "[aria-label*=\"Year\"]"],
+        "type": "dropdown"
       },
       "make": {
-        "selector": ["input[aria-label=\"Make\"]", "input[placeholder*=\"Make\"]"],
-        "type": "input"
+        "selector": ["[aria-label=\"Make\"]", "[aria-label*=\"Make\"]"],
+        "type": "dropdown"
       },
       "model": {
         "selector": ["input[aria-label=\"Model\"]", "input[placeholder*=\"Model\"]"],
@@ -36,8 +39,39 @@ var ADAPTERS = {
         "selector": ["input[aria-label=\"Mileage\"]", "input[placeholder*=\"Mileage\"]", "input[placeholder*=\"miles\"]"],
         "type": "input"
       },
+      "price": {
+        "selector": ["input[aria-label=\"Price\"]", "input[placeholder*=\"Price\"]", "input[name*=\"price\"]"],
+        "type": "input"
+      },
+      "bodyStyle": {
+        "selector": ["[aria-label=\"Body style\"]", "[aria-label*=\"Body style\"]"],
+        "type": "dropdown",
+        "valueMap": {
+          "suv": "suv",
+          "crossover": "suv",
+          "cuv": "suv",
+          "truck": "truck",
+          "pickup": "truck",
+          "pickup truck": "truck",
+          "sedan": "sedan",
+          "coupe": "coupe",
+          "convertible": "convertible",
+          "minivan": "minivan",
+          "van": "van",
+          "wagon": "wagon",
+          "hatchback": "hatchback"
+        }
+      },
+      "exteriorColor": {
+        "selector": ["[aria-label=\"Exterior color\"]", "[aria-label*=\"Exterior color\"]"],
+        "type": "dropdown"
+      },
+      "interiorColor": {
+        "selector": ["[aria-label=\"Interior color\"]", "[aria-label*=\"Interior color\"]"],
+        "type": "dropdown"
+      },
       "condition": {
-        "selector": ["[aria-label=\"Condition\"]", "[aria-label*=\"Condition\"]"],
+        "selector": ["[aria-label=\"Vehicle condition\"]", "[aria-label*=\"Vehicle condition\"]", "[aria-label=\"Condition\"]", "[aria-label*=\"Condition\"]"],
         "type": "dropdown",
         "valueMap": {
           "new": "new",
@@ -78,45 +112,6 @@ var ADAPTERS = {
           "manual": "manual transmission",
           "mt": "manual transmission",
           "cvt": "cvt transmission"
-        }
-      },
-      "drivetrain": {
-        "selector": ["[aria-label=\"Drivetrain\"]", "[aria-label*=\"Drivetrain\"]"],
-        "type": "dropdown",
-        "valueMap": {
-          "awd": "all-wheel drive",
-          "4wd": "four-wheel drive",
-          "4x4": "four-wheel drive",
-          "fwd": "front-wheel drive",
-          "rwd": "rear-wheel drive",
-          "2wd": "rear-wheel drive"
-        }
-      },
-      "exteriorColor": {
-        "selector": ["[aria-label=\"Exterior color\"]", "[aria-label*=\"Exterior color\"]"],
-        "type": "dropdown"
-      },
-      "interiorColor": {
-        "selector": ["[aria-label=\"Interior color\"]", "[aria-label*=\"Interior color\"]"],
-        "type": "dropdown"
-      },
-      "bodyStyle": {
-        "selector": ["[aria-label=\"Vehicle type\"]", "[aria-label*=\"Vehicle type\"]"],
-        "type": "dropdown",
-        "valueMap": {
-          "suv": "suv",
-          "crossover": "suv",
-          "cuv": "suv",
-          "truck": "truck",
-          "pickup": "truck",
-          "pickup truck": "truck",
-          "sedan": "sedan",
-          "coupe": "coupe",
-          "convertible": "convertible",
-          "minivan": "minivan",
-          "van": "van",
-          "wagon": "wagon",
-          "hatchback": "hatchback"
         }
       },
       "description": {
@@ -372,6 +367,9 @@ function resolveVehicleValue(vehicle, fieldName, adapterField) {
     return adapterField.composite.map(function (f) { return vehicle[f] || ""; }).filter(Boolean).join(" ");
   }
   var value = vehicle[fieldName];
+  if (!value && fieldName === "vehicleType") {
+    value = adapterField && adapterField.default ? adapterField.default : "car/truck";
+  }
   if (!value && fieldName === "condition") {
     value = adapterField && adapterField.default ? adapterField.default : "used";
   }
@@ -451,8 +449,20 @@ async function fillWithAdapter(vehicle, adapter) {
   var timing = adapter.timing || {};
   var results = [];
 
+  var initOrder = adapter.initFields || [];
   var requiredOrder = adapter.requiredFields || DEFAULT_REQUIRED_ORDER;
   var optionalOrder = adapter.optionalFields || DEFAULT_OPTIONAL_ORDER;
+
+  if (initOrder.length > 0) {
+    reportStatus("Initializing form...");
+    log("Phase 0: Init fields:", initOrder.join(", "));
+    var initResults = await fillFieldGroup(vehicle, adapter, initOrder, 8000);
+    results.push.apply(results, initResults);
+
+    var vehicleTypeSettle = timing.vehicleTypeSettle || 2000;
+    log("Waiting", vehicleTypeSettle, "ms for form to expand after init...");
+    await FillEngine.sleep(vehicleTypeSettle);
+  }
 
   reportStatus("Filling required fields...");
   log("Phase 1: Filling required fields:", requiredOrder.join(", "));
