@@ -330,6 +330,70 @@
     .btn-clear-cache:hover { border-color: #ef4444; color: #ef4444; }
 
     .hidden { display: none !important; }
+
+    .error-dialog {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .error-dialog-card {
+      background: #1e293b;
+      border: 1px solid #ef4444;
+      border-radius: 10px;
+      padding: 20px;
+      width: 300px;
+      max-width: 90%;
+    }
+    .error-dialog-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fca5a5;
+      margin-bottom: 8px;
+    }
+    .error-dialog-body {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+    .error-steps {
+      font-size: 12px;
+      color: #cbd5e1;
+      padding-left: 18px;
+      margin-bottom: 16px;
+      line-height: 1.8;
+    }
+    .error-dialog-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-retry {
+      flex: 1;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      padding: 7px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-retry:hover { background: #2563eb; }
+    .btn-dismiss {
+      flex: 1;
+      background: transparent;
+      border: 1px solid #374151;
+      color: #9ca3af;
+      padding: 7px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-dismiss:hover { border-color: #94a3b8; color: #e2e8f0; }
   </style>
 </head>
 <body>
@@ -383,6 +447,18 @@
 
   <div class="status-bar" id="statusBar">Ready</div>
   <div class="toast" id="toast"></div>
+
+  <div id="errorDialog" class="error-dialog hidden">
+    <div class="error-dialog-card">
+      <div class="error-dialog-title" id="errorTitle">Error</div>
+      <div class="error-dialog-body" id="errorBody"></div>
+      <ol class="error-steps" id="errorSteps"></ol>
+      <div class="error-dialog-actions">
+        <button class="btn-retry" id="btnRetry">Try Again</button>
+        <button class="btn-dismiss" id="btnDismiss">Dismiss</button>
+      </div>
+    </div>
+  </div>
 
   <script src="popup.js"></script>
 </body>

@@ -43,6 +43,7 @@ var listedMap = {};
 var isOnTargetPage = false;
 var currentTabUrl = "";
 var autoAdvance = false;
+var lastVehicle = null;
 
 var uploadView = document.getElementById("uploadView");
 var inventoryView = document.getElementById("inventoryView");
@@ -61,6 +62,65 @@ var btnSettings = document.getElementById("btnSettings");
 var apiKeyInput = document.getElementById("apiKeyInput");
 var btnSaveKey = document.getElementById("btnSaveKey");
 var btnClearCache = document.getElementById("btnClearCache");
+var errorDialog = document.getElementById("errorDialog");
+var errorTitle = document.getElementById("errorTitle");
+var errorBody = document.getElementById("errorBody");
+var errorSteps = document.getElementById("errorSteps");
+var btnRetry = document.getElementById("btnRetry");
+var btnDismiss = document.getElementById("btnDismiss");
+
+function showErrorDialog(title, body, steps) {
+  errorTitle.textContent = title;
+  errorBody.textContent = body;
+  errorSteps.innerHTML = "";
+  steps.forEach(function (step) {
+    var li = document.createElement("li");
+    li.textContent = step;
+    errorSteps.appendChild(li);
+  });
+  errorDialog.classList.remove("hidden");
+}
+
+function hideErrorDialog() {
+  errorDialog.classList.add("hidden");
+}
+
+function categorizeError(err) {
+  var msg = (err || "").toLowerCase();
+  if (msg.includes("could not connect") || msg.includes("lasterror") || msg.includes("receiving end does not exist")) {
+    return {
+      title: "Connection Lost",
+      body: "The listing tab disconnected before the fill could complete.",
+      steps: ["Refresh the listing tab", "Click List It again"]
+    };
+  }
+  if (msg.includes("inject") || msg.includes("scripting")) {
+    return {
+      title: "Injection Failed",
+      body: "The extension could not inject into the listing page.",
+      steps: ["Reload the extension at chrome://extensions", "Try again"]
+    };
+  }
+  if (msg.includes("required fields")) {
+    return {
+      title: "Fill Incomplete",
+      body: "One or more required fields could not be filled.",
+      steps: ["Make sure the form is fully loaded", "Try again"]
+    };
+  }
+  if (msg.includes("no fillable")) {
+    return {
+      title: "Page Not Recognized",
+      body: "No fillable form was found on the current tab.",
+      steps: ["Make sure you are on the listing form page", "Try again"]
+    };
+  }
+  return {
+    title: "Unexpected Error",
+    body: err || "An unknown error occurred.",
+    steps: ["Refresh the listing tab", "Try again"]
+  };
+}
 
 function showToast(message, type) {
   toast.textContent = message;
@@ -253,6 +313,7 @@ function getNextUnlisted(currentVehicleId) {
 }
 
 function listVehicle(vehicle) {
+  lastVehicle = vehicle;
   var btn = vehicleList.querySelector('.btn-list[data-id="' + vehicle.id + '"]');
   if (btn) {
     btn.disabled = true;
@@ -265,6 +326,12 @@ function listVehicle(vehicle) {
   chrome.runtime.sendMessage(
     { type: "LIST_VEHICLE", payload: { vehicle: vehicle, targetSite: targetSite } },
     function (response) {
+      if (chrome.runtime.lastError) {
+        var info = categorizeError(chrome.runtime.lastError.message || "");
+        showErrorDialog(info.title, info.body, info.steps);
+        if (btn) { btn.disabled = false; btn.textContent = "List It"; }
+        return;
+      }
       if (response && response.success) {
         var key = vehicleKey(vehicle);
         listedMap[key] = { timestamp: Date.now() };
@@ -282,12 +349,9 @@ function listVehicle(vehicle) {
         }
       } else {
         var err = response ? response.error : "Unknown error";
-        showToast("Error: " + err, "error");
-        updateStatus();
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = "List It";
-        }
+        var info = categorizeError(err);
+        showErrorDialog(info.title, info.body, info.steps);
+        if (btn) { btn.disabled = false; btn.textContent = "List It"; }
       }
     }
   );
@@ -516,6 +580,24 @@ btnClearCache.addEventListener("click", function () {
   chrome.runtime.sendMessage({ type: "CLEAR_SITE_CACHE" }, function () {
     showToast("Site cache cleared", "success");
   });
+});
+
+btnRetry.addEventListener("click", function () {
+  hideErrorDialog();
+  if (lastVehicle) listVehicle(lastVehicle);
+});
+
+btnDismiss.addEventListener("click", function () {
+  hideErrorDialog();
+  updateStatus();
+});
+
+chrome.runtime.onMessage.addListener(function (message) {
+  if (message.type === "FILL_STATUS" && message.payload) {
+    var text = message.payload.step || "";
+    if (message.payload.detail) text += " " + message.payload.detail;
+    setStatus(text);
+  }
 });
 
 chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {

@@ -344,6 +344,12 @@ function log(...args) {
   console.log("[Autimik]", ...args);
 }
 
+function reportStatus(step, detail) {
+  try {
+    chrome.runtime.sendMessage({ type: "FILL_STATUS", payload: { step: step, detail: detail || "" } });
+  } catch (e) { /* popup may be closed */ }
+}
+
 function findAdapter(url) {
   for (var id in ADAPTERS) {
     var adapter = ADAPTERS[id];
@@ -412,6 +418,8 @@ async function fillFieldGroup(vehicle, adapter, fieldNames, timeoutOverride) {
     var fieldConfig = adapter.fields[fieldName];
     if (!fieldConfig) continue;
 
+    reportStatus("Filling " + fieldName + "...");
+
     var value = resolveVehicleValue(vehicle, fieldName, fieldConfig);
     if (fieldName === "description" && !value) {
       value = vehicle.description || FillEngine.buildDescription(vehicle);
@@ -446,6 +454,7 @@ async function fillWithAdapter(vehicle, adapter) {
   var requiredOrder = adapter.requiredFields || DEFAULT_REQUIRED_ORDER;
   var optionalOrder = adapter.optionalFields || DEFAULT_OPTIONAL_ORDER;
 
+  reportStatus("Filling required fields...");
   log("Phase 1: Filling required fields:", requiredOrder.join(", "));
   var requiredResults = await fillFieldGroup(vehicle, adapter, requiredOrder, 8000);
   results.push.apply(results, requiredResults);
@@ -454,17 +463,20 @@ async function fillWithAdapter(vehicle, adapter) {
   log("Waiting", phaseSettle, "ms for form to settle before optional fields...");
   await FillEngine.sleep(phaseSettle);
 
+  reportStatus("Filling optional fields...");
   log("Phase 2: Filling optional fields:", optionalOrder.join(", "));
   var optionalResults = await fillFieldGroup(vehicle, adapter, optionalOrder, 4000);
   results.push.apply(results, optionalResults);
 
   var imageUrls = FillEngine.collectImageUrls(vehicle);
   if (imageUrls.length > 0) {
+    reportStatus("Uploading photos...");
     var photoResult = await FillEngine.uploadPhotos(imageUrls, adapter.photos);
     results.push(photoResult);
     if (timing.afterPhotos) await FillEngine.sleep(timing.afterPhotos);
   }
 
+  reportStatus("Almost done...");
   log("Form fill complete. Settling...");
   await FillEngine.sleep(timing.settle || 1500);
 
