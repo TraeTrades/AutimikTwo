@@ -20,9 +20,16 @@ const COLUMN_ALIASES = {
   condition: ["condition"],
 };
 
+function vehicleKey(v) {
+  if (v.vin && v.vin.length >= 6) return "vin:" + v.vin.toUpperCase();
+  if (v.stockNumber && v.stockNumber.length >= 2) return "stk:" + v.stockNumber;
+  return "id:" + v.id;
+}
+
 let vehicles = [];
 let listedMap = {};
 let isOnFBPage = false;
+let autoAdvance = false;
 
 const uploadView = document.getElementById("uploadView");
 const inventoryView = document.getElementById("inventoryView");
@@ -30,6 +37,7 @@ const vehicleList = document.getElementById("vehicleList");
 const searchInput = document.getElementById("searchInput");
 const statusBar = document.getElementById("statusBar");
 const btnClear = document.getElementById("btnClear");
+const btnAuto = document.getElementById("btnAuto");
 const dropZone = document.getElementById("dropZone");
 const fileInput = document.getElementById("fileInput");
 const toast = document.getElementById("toast");
@@ -47,6 +55,16 @@ function showToast(message, type) {
 
 function setStatus(text) {
   statusBar.textContent = text;
+}
+
+function updateStatus() {
+  if (vehicles.length === 0) {
+    setStatus("Ready");
+    return;
+  }
+  const listedCount = vehicles.filter((v) => !!listedMap[vehicleKey(v)]).length;
+  const unlistedCount = vehicles.length - listedCount;
+  setStatus(`${listedCount} listed \u00b7 ${unlistedCount} remaining \u00b7 ${vehicles.length} total`);
 }
 
 function parseCSV(text) {
@@ -147,6 +165,58 @@ function processCSV(text) {
   return rows;
 }
 
+function getNextUnlisted(currentVehicleId) {
+  const idx = vehicles.findIndex((v) => v.id === currentVehicleId);
+  for (let i = idx + 1; i < vehicles.length; i++) {
+    if (!listedMap[vehicleKey(vehicles[i])]) return vehicles[i];
+  }
+  return null;
+}
+
+function listVehicle(vehicle) {
+  const btn = vehicleList.querySelector(`.btn-list[data-id="${vehicle.id}"]`);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Filling...";
+  }
+  setStatus("Filling form...");
+
+  chrome.runtime.sendMessage(
+    { type: "LIST_VEHICLE", payload: { vehicle } },
+    (response) => {
+      if (response && response.success) {
+        const key = vehicleKey(vehicle);
+        chrome.runtime.sendMessage(
+          { type: "MARK_LISTED", payload: { vehicleKey: key } },
+          () => {
+            listedMap[key] = { timestamp: Date.now() };
+            showToast("Listed! \u2713", "success");
+            renderVehicles(searchInput.value);
+            if (autoAdvance) {
+              const next = getNextUnlisted(vehicle.id);
+              if (next) {
+                setTimeout(() => listVehicle(next), 2000);
+              } else {
+                setStatus("All vehicles listed!");
+              }
+            } else {
+              updateStatus();
+            }
+          }
+        );
+      } else {
+        const err = response ? response.error : "Unknown error";
+        showToast("Error: " + err, "error");
+        updateStatus();
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "List It";
+        }
+      }
+    }
+  );
+}
+
 function renderVehicles(filter) {
   vehicleList.innerHTML = "";
   const query = (filter || "").toLowerCase();
@@ -179,7 +249,7 @@ function renderVehicles(filter) {
   }
 
   filtered.forEach((v) => {
-    const isListed = !!listedMap[v.id];
+    const isListed = !!listedMap[vehicleKey(v)];
     const card = document.createElement("div");
     card.className = "vehicle-card" + (isListed ? " listed" : "");
 
@@ -238,13 +308,14 @@ function renderVehicles(filter) {
     vehicleList.appendChild(card);
   });
 
-  setStatus(filtered.length + " of " + vehicles.length + " vehicles");
+  updateStatus();
 }
 
 function showUploadView() {
   uploadView.classList.remove("hidden");
   inventoryView.classList.add("hidden");
   btnClear.classList.add("hidden");
+  btnAuto.classList.add("hidden");
   setStatus("Ready");
 }
 
@@ -252,6 +323,7 @@ function showInventoryView() {
   uploadView.classList.add("hidden");
   inventoryView.classList.remove("hidden");
   btnClear.classList.remove("hidden");
+  btnAuto.classList.remove("hidden");
   renderVehicles(searchInput.value);
 }
 
@@ -308,33 +380,7 @@ vehicleList.addEventListener("click", (e) => {
   const vehicleId = btn.dataset.id;
   const vehicle = vehicles.find((v) => v.id === vehicleId);
   if (!vehicle) return;
-
-  btn.disabled = true;
-  btn.textContent = "Filling...";
-  setStatus("Filling form...");
-
-  chrome.runtime.sendMessage(
-    { type: "LIST_VEHICLE", payload: { vehicle } },
-    (response) => {
-      if (response && response.success) {
-        chrome.runtime.sendMessage(
-          { type: "MARK_LISTED", payload: { vehicleId } },
-          () => {
-            listedMap[vehicleId] = { timestamp: Date.now() };
-            showToast("Listed! \u2713", "success");
-            setStatus("Ready");
-            renderVehicles(searchInput.value);
-          }
-        );
-      } else {
-        const err = response ? response.error : "Unknown error";
-        showToast("Error: " + err, "error");
-        setStatus("Ready");
-        btn.disabled = false;
-        btn.textContent = "List It";
-      }
-    }
-  );
+  listVehicle(vehicle);
 });
 
 btnClear.addEventListener("click", () => {
@@ -342,9 +388,18 @@ btnClear.addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "CLEAR_INVENTORY" }, () => {
     vehicles = [];
     listedMap = {};
+    autoAdvance = false;
+    btnAuto.textContent = "Auto: OFF";
+    btnAuto.classList.remove("on");
     showToast("Inventory cleared", "success");
     showUploadView();
   });
+});
+
+btnAuto.addEventListener("click", () => {
+  autoAdvance = !autoAdvance;
+  btnAuto.textContent = autoAdvance ? "Auto: ON" : "Auto: OFF";
+  btnAuto.classList.toggle("on", autoAdvance);
 });
 
 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {

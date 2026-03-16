@@ -2,6 +2,75 @@ function log(...args) {
   console.log("[Autimik]", ...args);
 }
 
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// Strip formatting (commas, spaces, $) before comparing — prevents "24,999".includes("24999") → false
+function normalizeForVerify(s) {
+  return String(s).replace(/[^0-9a-zA-Z]/g, "").toLowerCase();
+}
+
+// Translate DMS abbreviations to the full text Facebook shows in dropdowns
+const DROPDOWN_VALUE_MAP = {
+  // Drivetrain
+  "awd":              "all-wheel drive",
+  "4wd":              "four-wheel drive",
+  "4x4":              "four-wheel drive",
+  "fwd":              "front-wheel drive",
+  "rwd":              "rear-wheel drive",
+  "2wd":              "rear-wheel drive",
+  // Transmission
+  "auto":             "automatic transmission",
+  "automatic":        "automatic transmission",
+  "at":               "automatic transmission",
+  "manual":           "manual transmission",
+  "mt":               "manual transmission",
+  "cvt":              "cvt transmission",
+  // Fuel type
+  "gas":              "gasoline",
+  "unleaded":         "gasoline",
+  "phev":             "plug-in hybrid",
+  "plug-in hybrid":   "plug-in hybrid",
+  "plug in hybrid":   "plug-in hybrid",
+  "electric":         "electric",
+  "ev":               "electric",
+  "diesel":           "diesel",
+  "hybrid":           "hybrid",
+  "flex":             "flex fuel",
+  "flex fuel":        "flex fuel",
+  "e85":              "flex fuel",
+  // Condition
+  "new":              "new",
+  "used":             "used - good",
+  "cpo":              "used - like new",
+  "certified":        "used - like new",
+  "excellent":        "used - like new",
+  "good":             "used - good",
+  "fair":             "used - fair",
+  // Body style / vehicle type
+  "suv":              "suv / crossover",
+  "crossover":        "suv / crossover",
+  "cuv":              "suv / crossover",
+  "truck":            "truck",
+  "pickup":           "truck",
+  "pickup truck":     "truck",
+  "sedan":            "sedan",
+  "coupe":            "coupe",
+  "convertible":      "convertible",
+  "minivan":          "van / minivan",
+  "van":              "van / minivan",
+  "cargo van":        "van / minivan",
+  "passenger van":    "van / minivan",
+  "wagon":            "wagon",
+  "hatchback":        "hatchback",
+};
+
+function mapDropdownValue(value) {
+  const key = String(value).toLowerCase().trim();
+  return DROPDOWN_VALUE_MAP[key] || key;
+}
+
 function waitFor(selectors, timeout = 12000) {
   const selectorList = Array.isArray(selectors) ? selectors : [selectors];
   return new Promise((resolve, reject) => {
@@ -59,27 +128,47 @@ function setNativeValue(element, value) {
 }
 
 async function fillInput(label, value, fallbackSelectors) {
-  if (!value) {
-    log("Skipping empty value for:", label);
-    return true;
-  }
+  if (!value) return { field: label, status: "skipped" };
+
   const selectors = [
     `input[aria-label="${label}"]`,
     `textarea[aria-label="${label}"]`,
     ...(fallbackSelectors || []),
   ];
-  try {
-    const el = await waitFor(selectors);
-    log("Filling", label, "with:", value);
-    el.focus();
-    setNativeValue(el, String(value));
-    el.blur();
-    log("Filled", label, "successfully");
-    return true;
-  } catch (e) {
-    log("FAILED to fill", label, ":", e.message);
-    return false;
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const el = await waitFor(selectors, 8000);
+      el.scrollIntoView({ block: "center", behavior: "instant" });
+      el.focus();
+      await sleep(100);
+      setNativeValue(el, String(value));
+      await sleep(150);
+
+      const actual = el.value || "";
+      const expectedNorm = normalizeForVerify(String(value)).substring(0, 8);
+      if (normalizeForVerify(actual).includes(expectedNorm)) {
+        log("Filled", label, "with:", value);
+        return { field: label, status: "filled", value };
+      }
+
+      el.click();
+      await sleep(200);
+      setNativeValue(el, String(value));
+      el.blur();
+      await sleep(200);
+
+      const recheck = el.value || "";
+      if (normalizeForVerify(recheck).includes(expectedNorm)) {
+        log("Filled", label, "(retry) with:", value);
+        return { field: label, status: "filled", value };
+      }
+    } catch (e) {
+      if (attempt === 3) return { field: label, status: "failed", error: e.message };
+      await sleep(500);
+    }
   }
+  return { field: label, status: "failed", error: "Exhausted retries" };
 }
 
 async function selectDropdown(label, value) {
@@ -95,9 +184,9 @@ async function selectDropdown(label, value) {
     ]);
     log("Opening dropdown:", label);
     trigger.click();
-    await new Promise((r) => setTimeout(r, 400));
+    await sleep(400);
 
-    const normalizedValue = String(value).toLowerCase().trim();
+    const normalizedValue = mapDropdownValue(value);
     const options = document.querySelectorAll('[role="option"], [role="listbox"] [role="option"]');
     let matched = false;
     for (const opt of options) {
@@ -125,7 +214,7 @@ async function selectDropdown(label, value) {
       log("No matching option found for", label, ":", value);
       document.body.click();
     }
-    await new Promise((r) => setTimeout(r, 300));
+    await sleep(300);
   } catch (e) {
     log("Could not select dropdown", label, ":", e.message);
   }
@@ -145,9 +234,9 @@ async function fillDescription(text) {
       setNativeValue(el, text);
     } else {
       el.focus();
-      el.textContent = text;
+      el.textContent = "";
+      document.execCommand("insertText", false, text);
       el.dispatchEvent(new Event("input", { bubbles: true }));
-      el.dispatchEvent(new Event("change", { bubbles: true }));
     }
     log("Description filled");
   } catch (e) {
@@ -233,35 +322,25 @@ function buildDescription(vehicle) {
   return lines.join("\n");
 }
 
+const REQUIRED_FIELDS = ["Price", "Year", "Make", "Model"];
+
 async function fillForm(vehicle) {
   log("Starting form fill for:", vehicle.year, vehicle.make, vehicle.model);
-  const failures = [];
+  const results = [];
 
-  const priceOk = await fillInput("Price", vehicle.price, [
-    'input[placeholder*="Price"]',
-    'input[name*="price"]',
-  ]);
-  if (!priceOk) failures.push("Price");
-  await new Promise((r) => setTimeout(r, 500));
+  const fields = [
+    { label: "Price", value: vehicle.price, fallback: ['input[placeholder*="Price"]', 'input[name*="price"]'] },
+    { label: "Year", value: vehicle.year, fallback: ['input[placeholder*="Year"]'] },
+    { label: "Make", value: vehicle.make, fallback: ['input[placeholder*="Make"]'] },
+    { label: "Model", value: vehicle.model, fallback: ['input[placeholder*="Model"]'] },
+    { label: "Mileage", value: vehicle.mileage, fallback: ['input[placeholder*="Mileage"]', 'input[placeholder*="miles"]'] },
+  ];
 
-  const yearOk = await fillInput("Year", vehicle.year, ['input[placeholder*="Year"]']);
-  if (!yearOk) failures.push("Year");
-  await new Promise((r) => setTimeout(r, 500));
-
-  const makeOk = await fillInput("Make", vehicle.make, ['input[placeholder*="Make"]']);
-  if (!makeOk) failures.push("Make");
-  await new Promise((r) => setTimeout(r, 500));
-
-  const modelOk = await fillInput("Model", vehicle.model, ['input[placeholder*="Model"]']);
-  if (!modelOk) failures.push("Model");
-  await new Promise((r) => setTimeout(r, 500));
-
-  const mileageOk = await fillInput("Mileage", vehicle.mileage, [
-    'input[placeholder*="Mileage"]',
-    'input[placeholder*="miles"]',
-  ]);
-  if (!mileageOk) failures.push("Mileage");
-  await new Promise((r) => setTimeout(r, 500));
+  for (const { label, value, fallback } of fields) {
+    const result = await fillInput(label, value, fallback);
+    results.push(result);
+    await sleep(500);
+  }
 
   await selectDropdown("Condition", vehicle.condition || "Used");
   await selectDropdown("Fuel type", vehicle.fuelType);
@@ -283,24 +362,45 @@ async function fillForm(vehicle) {
   }
   await uploadPhotos(imageUrls);
 
-  log("Form fill complete. Waiting 10 seconds before signaling done...");
-  await new Promise((r) => setTimeout(r, 10000));
+  log("Form fill complete. Settling...");
+  await sleep(1500);
 
-  if (failures.length > 0) {
-    const msg = "Failed to fill required fields: " + failures.join(", ");
+  const filled = results.filter((r) => r.status === "filled").length;
+  const failed = results.filter((r) => r.status === "failed");
+  const skipped = results.filter((r) => r.status === "skipped").length;
+  const failedFields = failed.map((r) => r.field);
+
+  const summary = {
+    total: results.length,
+    filled,
+    failed: failed.length,
+    skipped,
+    failedFields,
+    results,
+  };
+
+  const requiredFailed = failedFields.filter((f) => REQUIRED_FIELDS.includes(f));
+  if (requiredFailed.length > 0) {
+    const msg = "Failed to fill required fields: " + requiredFailed.join(", ");
     log(msg);
     throw new Error(msg);
   }
 
-  log("Done! All required fields filled successfully.");
+  log("Done! Summary:", summary);
+  return summary;
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "PING") {
+    sendResponse({ alive: true });
+    return;
+  }
+
   if (message.type === "FILL_FORM") {
     log("Received FILL_FORM message");
     fillForm(message.payload)
-      .then(() => {
-        sendResponse({ success: true });
+      .then((summary) => {
+        sendResponse({ success: true, summary });
       })
       .catch((err) => {
         log("Form fill error:", err.message);

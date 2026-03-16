@@ -50,9 +50,9 @@ export default function Demo() {
             <Link href="/" className="text-gray-400 hover:text-white text-sm flex items-center gap-1 transition-colors">
               <ArrowLeft className="w-4 h-4" /> Back
             </Link>
-            <Link href="/app" className="text-sm font-semibold px-4 py-1.5 rounded-lg text-white transition-all hover:brightness-110" style={{ background: "#22c55e" }}>
-              Launch App
-            </Link>
+            <a href="https://chromewebstore.google.com/detail/autimik/YOUR_EXTENSION_ID" target="_blank" rel="noopener noreferrer" className="text-sm font-semibold px-4 py-1.5 rounded-lg text-white transition-all hover:brightness-110" style={{ background: "#22c55e" }}>
+              Get Extension
+            </a>
           </div>
         </div>
       </nav>

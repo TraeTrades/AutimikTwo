@@ -43,6 +43,17 @@
       cursor: pointer;
     }
     .btn-clear:hover { border-color: #ef4444; color: #ef4444; }
+    .btn-auto {
+      background: transparent;
+      border: 1px solid #374151;
+      color: #9ca3af;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .btn-auto:hover { border-color: #22c55e; color: #22c55e; }
+    .btn-auto.on { border-color: #22c55e; color: #22c55e; }
 
     .upload-view {
       flex: 1;
@@ -233,6 +244,7 @@
   <div class="header">
     <h1>Autimik</h1>
     <div class="header-actions">
+      <button class="btn-auto hidden" id="btnAuto">Auto: OFF</button>
       <button class="btn-clear hidden" id="btnClear">Clear</button>
     </div>
   </div>

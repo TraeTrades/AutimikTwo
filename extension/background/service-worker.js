@@ -1,3 +1,28 @@
+function vehicleKey(v) {
+  if (v.vin && v.vin.length >= 6) return "vin:" + v.vin.toUpperCase();
+  if (v.stockNumber && v.stockNumber.length >= 2) return "stk:" + v.stockNumber;
+  return "id:" + v.id;
+}
+
+async function ensureContentScript(tabId) {
+  try {
+    const resp = await chrome.tabs.sendMessage(tabId, { type: "PING" });
+    if (resp && resp.alive) return true;
+  } catch (e) {
+    // Not loaded — inject
+  }
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["content.js"],
+    });
+    await new Promise((r) => setTimeout(r, 800));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const { type, payload } = message;
 
@@ -24,7 +49,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           (t) => t.url && t.url.startsWith(FB_CREATE_URL)
         );
 
-        function sendFillMessage(tabId) {
+        async function sendFillMessage(tabId) {
+          await ensureContentScript(tabId);
           chrome.tabs.sendMessage(
             tabId,
             { type: "FILL_FORM", payload: payload.vehicle },
@@ -36,9 +62,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     chrome.runtime.lastError.message ||
                     "Could not connect to the page. Try refreshing the Facebook tab and clicking List It again.",
                 });
-              } else {
-                sendResponse(response || { success: true });
+                return;
               }
+              const result = response || { success: true };
+              // Write to storage immediately so popup re-open picks it up even if it was closed mid-fill
+              if (result.success) {
+                const key = vehicleKey(payload.vehicle);
+                chrome.storage.local.get("autimik_listed", (stored) => {
+                  const listed = stored.autimik_listed || {};
+                  listed[key] = { timestamp: Date.now() };
+                  chrome.storage.local.set({ autimik_listed: listed });
+                });
+              }
+              sendResponse(result);
             }
           );
         }
@@ -54,13 +90,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             function onUpdated(tabId, info) {
               if (tabId === newTab.id && info.status === "complete") {
                 chrome.tabs.onUpdated.removeListener(onUpdated);
+                clearTimeout(safetyTimeout);
                 setTimeout(() => sendFillMessage(newTab.id), 1500);
               }
             }
             chrome.tabs.onUpdated.addListener(onUpdated);
-            setTimeout(() => {
+            const safetyTimeout = setTimeout(() => {
               chrome.tabs.onUpdated.removeListener(onUpdated);
-            }, 30000);
+              sendFillMessage(newTab.id);
+            }, 20000);
           });
         }
       });
@@ -70,7 +108,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case "MARK_LISTED": {
       chrome.storage.local.get("autimik_listed", (result) => {
         const listed = result.autimik_listed || {};
-        listed[payload.vehicleId] = { timestamp: Date.now() };
+        listed[payload.vehicleKey] = { timestamp: Date.now() };
         chrome.storage.local.set({ autimik_listed: listed }, () => {
           sendResponse({ success: true });
         });
