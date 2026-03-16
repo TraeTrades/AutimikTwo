@@ -32,7 +32,7 @@
       color: #60a5fa;
       letter-spacing: 0.5px;
     }
-    .header-actions { display: flex; gap: 8px; }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
     .btn-clear {
       background: transparent;
       border: 1px solid #374151;
@@ -54,6 +54,41 @@
     }
     .btn-auto:hover { border-color: #22c55e; color: #22c55e; }
     .btn-auto.on { border-color: #22c55e; color: #22c55e; }
+    .btn-settings {
+      background: transparent;
+      border: 1px solid #374151;
+      color: #9ca3af;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .btn-settings:hover { border-color: #60a5fa; color: #60a5fa; }
+
+    .site-selector {
+      padding: 8px 16px;
+      border-bottom: 1px solid #1e293b;
+      background: #0f172a;
+    }
+    .site-selector label {
+      font-size: 11px;
+      color: #94a3b8;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .site-selector select {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: #e2e8f0;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+    }
+    .site-selector select:focus { border-color: #60a5fa; }
 
     .upload-view {
       flex: 1;
@@ -236,6 +271,64 @@
     .toast.success { background: #166534; color: #bbf7d0; }
     .toast.error { background: #7f1d1d; color: #fecaca; }
 
+    .settings-panel {
+      padding: 16px;
+      border-bottom: 1px solid #1e293b;
+      background: #0f172a;
+    }
+    .settings-panel h3 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #94a3b8;
+    }
+    .settings-row {
+      margin-bottom: 10px;
+    }
+    .settings-row label {
+      font-size: 11px;
+      color: #94a3b8;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .settings-row input {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: #e2e8f0;
+      font-size: 12px;
+      outline: none;
+    }
+    .settings-row input:focus { border-color: #60a5fa; }
+    .settings-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .btn-save-key {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-save-key:hover { background: #2563eb; }
+    .btn-clear-cache {
+      background: transparent;
+      border: 1px solid #374151;
+      color: #9ca3af;
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .btn-clear-cache:hover { border-color: #ef4444; color: #ef4444; }
+
     .hidden { display: none !important; }
   </style>
 </head>
@@ -246,7 +339,30 @@
     <div class="header-actions">
       <button class="btn-auto hidden" id="btnAuto">Auto: OFF</button>
       <button class="btn-clear hidden" id="btnClear">Clear</button>
+      <button class="btn-settings" id="btnSettings" title="Settings">&#9881;</button>
     </div>
+  </div>
+
+  <div id="settingsPanel" class="settings-panel hidden">
+    <h3>Settings</h3>
+    <div class="settings-row">
+      <label for="apiKeyInput">Anthropic API Key (for AI auto-detect on unknown sites)</label>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-...">
+    </div>
+    <div class="settings-actions">
+      <button class="btn-save-key" id="btnSaveKey">Save Key</button>
+      <button class="btn-clear-cache" id="btnClearCache">Clear Site Cache</button>
+    </div>
+  </div>
+
+  <div id="siteSelector" class="site-selector hidden">
+    <label for="targetSite">Target listing site</label>
+    <select id="targetSite">
+      <option value="facebook">Facebook Marketplace</option>
+      <option value="craigslist">Craigslist</option>
+      <option value="offerup">OfferUp</option>
+      <option value="current">Current tab</option>
+    </select>
   </div>
 
   <div id="uploadView" class="upload-view">

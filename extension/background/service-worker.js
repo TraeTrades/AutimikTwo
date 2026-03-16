@@ -1,3 +1,9 @@
+var SITE_URLS = {
+  facebook: "https://www.facebook.com/marketplace/create/vehicle",
+  craigslist: "https://post.craigslist.org/",
+  offerup: "https://offerup.com/post/"
+};
+
 function vehicleKey(v) {
   if (v.vin && v.vin.length >= 6) return "vin:" + v.vin.toUpperCase();
   if (v.stockNumber && v.stockNumber.length >= 2) return "stk:" + v.stockNumber;
@@ -6,110 +12,112 @@ function vehicleKey(v) {
 
 async function ensureContentScript(tabId) {
   try {
-    const resp = await chrome.tabs.sendMessage(tabId, { type: "PING" });
+    var resp = await chrome.tabs.sendMessage(tabId, { type: "PING" });
     if (resp && resp.alive) return true;
   } catch (e) {
-    // Not loaded — inject
   }
   try {
     await chrome.scripting.executeScript({
-      target: { tabId },
-      files: ["content.js"],
+      target: { tabId: tabId },
+      files: ["fill-engine.js", "form-scanner.js", "ai-mapper.js", "mapping-cache.js", "content.js"]
     });
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise(function (r) { setTimeout(r, 800); });
     return true;
   } catch (e) {
     return false;
   }
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  const { type, payload } = message;
+chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+  var type = message.type;
+  var payload = message.payload;
 
   switch (type) {
     case "SAVE_INVENTORY": {
-      chrome.storage.local.set({ autimik_inventory: payload.vehicles }, () => {
+      chrome.storage.local.set({ autimik_inventory: payload.vehicles }, function () {
         sendResponse({ success: true, count: payload.vehicles.length });
       });
       return true;
     }
 
     case "GET_INVENTORY": {
-      chrome.storage.local.get("autimik_inventory", (result) => {
+      chrome.storage.local.get("autimik_inventory", function (result) {
         sendResponse({ success: true, vehicles: result.autimik_inventory || [] });
       });
       return true;
     }
 
     case "LIST_VEHICLE": {
-      const FB_CREATE_URL = "https://www.facebook.com/marketplace/create/vehicle";
+      var targetSite = payload.targetSite || "facebook";
 
-      chrome.tabs.query({}, (allTabs) => {
-        const fbTab = allTabs.find(
-          (t) => t.url && t.url.startsWith(FB_CREATE_URL)
-        );
-
-        async function sendFillMessage(tabId) {
-          await ensureContentScript(tabId);
-          chrome.tabs.sendMessage(
-            tabId,
-            { type: "FILL_FORM", payload: payload.vehicle },
-            (response) => {
-              if (chrome.runtime.lastError) {
-                sendResponse({
-                  success: false,
-                  error:
-                    chrome.runtime.lastError.message ||
-                    "Could not connect to the page. Try refreshing the Facebook tab and clicking List It again.",
-                });
-                return;
-              }
-              const result = response || { success: true };
-              // Write to storage immediately so popup re-open picks it up even if it was closed mid-fill
-              if (result.success) {
-                const key = vehicleKey(payload.vehicle);
-                chrome.storage.local.get("autimik_listed", (stored) => {
-                  const listed = stored.autimik_listed || {};
-                  listed[key] = { timestamp: Date.now() };
-                  chrome.storage.local.set({ autimik_listed: listed });
-                });
-              }
-              sendResponse(result);
+      function getTargetUrl(site, callback) {
+        if (site === "current") {
+          chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+            if (tabs[0]) {
+              callback(null, tabs[0]);
+            } else {
+              callback("No active tab found");
             }
-          );
-        }
-
-        if (fbTab) {
-          chrome.tabs.update(fbTab.id, { active: true }, () => {
-            chrome.windows.update(fbTab.windowId, { focused: true }, () => {
-              setTimeout(() => sendFillMessage(fbTab.id), 500);
-            });
           });
         } else {
-          chrome.tabs.create({ url: FB_CREATE_URL, active: true }, (newTab) => {
-            function onUpdated(tabId, info) {
-              if (tabId === newTab.id && info.status === "complete") {
-                chrome.tabs.onUpdated.removeListener(onUpdated);
-                clearTimeout(safetyTimeout);
-                setTimeout(() => sendFillMessage(newTab.id), 1500);
-              }
-            }
-            chrome.tabs.onUpdated.addListener(onUpdated);
-            const safetyTimeout = setTimeout(() => {
-              chrome.tabs.onUpdated.removeListener(onUpdated);
-              sendFillMessage(newTab.id);
-            }, 20000);
-          });
+          callback(null, null);
         }
+      }
+
+      getTargetUrl(targetSite, function (err, existingTab) {
+        if (err) {
+          sendResponse({ success: false, error: err });
+          return;
+        }
+
+        if (targetSite === "current" && existingTab) {
+          sendFillMessage(existingTab.id, payload.vehicle, sendResponse);
+          return;
+        }
+
+        var targetUrl = SITE_URLS[targetSite] || SITE_URLS.facebook;
+
+        chrome.tabs.query({}, function (allTabs) {
+          var matchingTab = allTabs.find(function (t) {
+            return t.url && t.url.startsWith(targetUrl);
+          });
+
+          if (matchingTab) {
+            chrome.tabs.update(matchingTab.id, { active: true }, function () {
+              chrome.windows.update(matchingTab.windowId, { focused: true }, function () {
+                setTimeout(function () {
+                  sendFillMessage(matchingTab.id, payload.vehicle, sendResponse);
+                }, 500);
+              });
+            });
+          } else {
+            chrome.tabs.create({ url: targetUrl, active: true }, function (newTab) {
+              function onUpdated(tabId, info) {
+                if (tabId === newTab.id && info.status === "complete") {
+                  chrome.tabs.onUpdated.removeListener(onUpdated);
+                  clearTimeout(safetyTimeout);
+                  setTimeout(function () {
+                    sendFillMessage(newTab.id, payload.vehicle, sendResponse);
+                  }, 1500);
+                }
+              }
+              chrome.tabs.onUpdated.addListener(onUpdated);
+              var safetyTimeout = setTimeout(function () {
+                chrome.tabs.onUpdated.removeListener(onUpdated);
+                sendFillMessage(newTab.id, payload.vehicle, sendResponse);
+              }, 20000);
+            });
+          }
+        });
       });
       return true;
     }
 
     case "MARK_LISTED": {
-      chrome.storage.local.get("autimik_listed", (result) => {
-        const listed = result.autimik_listed || {};
+      chrome.storage.local.get("autimik_listed", function (result) {
+        var listed = result.autimik_listed || {};
         listed[payload.vehicleKey] = { timestamp: Date.now() };
-        chrome.storage.local.set({ autimik_listed: listed }, () => {
+        chrome.storage.local.set({ autimik_listed: listed }, function () {
           sendResponse({ success: true });
         });
       });
@@ -117,38 +125,59 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     case "GET_LISTED": {
-      chrome.storage.local.get("autimik_listed", (result) => {
+      chrome.storage.local.get("autimik_listed", function (result) {
         sendResponse({ success: true, listed: result.autimik_listed || {} });
       });
       return true;
     }
 
     case "CLEAR_INVENTORY": {
-      chrome.storage.local.remove(["autimik_inventory", "autimik_listed"], () => {
+      chrome.storage.local.remove(["autimik_inventory", "autimik_listed"], function () {
+        sendResponse({ success: true });
+      });
+      return true;
+    }
+
+    case "SAVE_API_KEY": {
+      chrome.storage.sync.set({ autimik_api_key: payload.apiKey }, function () {
+        sendResponse({ success: true });
+      });
+      return true;
+    }
+
+    case "GET_API_KEY": {
+      chrome.storage.sync.get("autimik_api_key", function (result) {
+        sendResponse({ success: true, apiKey: result.autimik_api_key || "" });
+      });
+      return true;
+    }
+
+    case "CLEAR_SITE_CACHE": {
+      chrome.storage.local.remove("autimik_ai_mappings", function () {
         sendResponse({ success: true });
       });
       return true;
     }
 
     case "FETCH_IMAGE": {
-      const url = payload.url;
+      var url = payload.url;
       fetch(url)
-        .then((response) => {
+        .then(function (response) {
           if (!response.ok) throw new Error("HTTP " + response.status);
           return response.blob();
         })
-        .then((blob) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
+        .then(function (blob) {
+          var reader = new FileReader();
+          reader.onloadend = function () {
             sendResponse({
               success: true,
               dataUrl: reader.result,
-              mimeType: blob.type || "image/jpeg",
+              mimeType: blob.type || "image/jpeg"
             });
           };
           reader.readAsDataURL(blob);
         })
-        .catch((err) => {
+        .catch(function (err) {
           sendResponse({ success: false, error: err.message });
         });
       return true;
@@ -159,3 +188,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
   }
 });
+
+function sendFillMessage(tabId, vehicle, sendResponse) {
+  ensureContentScript(tabId).then(function () {
+    chrome.tabs.sendMessage(
+      tabId,
+      { type: "FILL_FORM", payload: vehicle },
+      function (response) {
+        if (chrome.runtime.lastError) {
+          sendResponse({
+            success: false,
+            error: chrome.runtime.lastError.message || "Could not connect to the page. Try refreshing the tab and clicking List It again."
+          });
+          return;
+        }
+        var result = response || { success: true };
+        if (result.success) {
+          var key = vehicleKey(vehicle);
+          chrome.storage.local.get("autimik_listed", function (stored) {
+            var listed = stored.autimik_listed || {};
+            listed[key] = { timestamp: Date.now() };
+            chrome.storage.local.set({ autimik_listed: listed });
+          });
+        }
+        sendResponse(result);
+      }
+    );
+  });
+}

@@ -1,0 +1,121 @@
+{
+  "id": "craigslist",
+  "name": "Craigslist",
+  "version": "1.0.0",
+  "match": ["*://*.craigslist.org/post*"],
+  "strategy": "standard_html",
+  "timing": {
+    "afterField": 300,
+    "afterDropdown": 200,
+    "afterDescription": 200,
+    "afterPhotos": 0,
+    "settle": 1000
+  },
+  "fields": {
+    "price": {
+      "selector": ["input[name=\"price\"]", "input#price", "input[placeholder*=\"price\"]"],
+      "type": "input"
+    },
+    "year": {
+      "selector": ["input[name=\"auto_year\"]", "input#auto_year", "select[name=\"auto_year\"]"],
+      "type": "input"
+    },
+    "make": {
+      "selector": ["input[name=\"auto_make_model\"]", "input#auto_make_model"],
+      "type": "input",
+      "composite": ["make", "model"]
+    },
+    "mileage": {
+      "selector": ["input[name=\"auto_miles\"]", "input#auto_miles"],
+      "type": "input"
+    },
+    "condition": {
+      "selector": ["select[name=\"condition\"]", "select#condition"],
+      "type": "select",
+      "valueMap": {
+        "new": "new",
+        "used": "good",
+        "cpo": "like new",
+        "certified": "like new",
+        "excellent": "excellent",
+        "good": "good",
+        "fair": "fair",
+        "salvage": "salvage"
+      },
+      "default": "good"
+    },
+    "fuelType": {
+      "selector": ["select[name=\"auto_fuel_type\"]", "select#auto_fuel_type"],
+      "type": "select",
+      "valueMap": {
+        "gas": "gas",
+        "unleaded": "gas",
+        "diesel": "diesel",
+        "hybrid": "hybrid",
+        "electric": "electric",
+        "ev": "electric"
+      }
+    },
+    "transmission": {
+      "selector": ["select[name=\"auto_transmission\"]", "select#auto_transmission"],
+      "type": "select",
+      "valueMap": {
+        "auto": "automatic",
+        "automatic": "automatic",
+        "at": "automatic",
+        "manual": "manual",
+        "mt": "manual"
+      }
+    },
+    "drivetrain": {
+      "selector": ["select[name=\"auto_drivetrain\"]", "select#auto_drivetrain"],
+      "type": "select",
+      "valueMap": {
+        "awd": "4wd",
+        "4wd": "4wd",
+        "4x4": "4wd",
+        "fwd": "fwd",
+        "rwd": "rwd",
+        "2wd": "rwd"
+      }
+    },
+    "exteriorColor": {
+      "selector": ["select[name=\"auto_paint\"]", "select#auto_paint"],
+      "type": "select"
+    },
+    "bodyStyle": {
+      "selector": ["select[name=\"auto_body_type\"]", "select#auto_body_type"],
+      "type": "select",
+      "valueMap": {
+        "suv": "SUV",
+        "crossover": "SUV",
+        "cuv": "SUV",
+        "truck": "pickup",
+        "pickup": "pickup",
+        "pickup truck": "pickup",
+        "sedan": "sedan",
+        "coupe": "coupe",
+        "convertible": "convertible",
+        "minivan": "mini-van",
+        "van": "van",
+        "wagon": "wagon",
+        "hatchback": "hatchback"
+      }
+    },
+    "vin": {
+      "selector": ["input[name=\"auto_vin\"]", "input#auto_vin"],
+      "type": "input"
+    },
+    "title": {
+      "selector": ["input[name=\"PostingTitle\"]", "input#PostingTitle"],
+      "type": "input"
+    },
+    "description": {
+      "selector": ["textarea[name=\"PostingBody\"]", "textarea#PostingBody"],
+      "type": "description"
+    }
+  },
+  "photos": {
+    "enabled": false
+  }
+}

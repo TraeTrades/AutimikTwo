@@ -1,0 +1,129 @@
+{
+  "id": "facebook",
+  "name": "Facebook Marketplace",
+  "version": "1.0.0",
+  "match": ["*://www.facebook.com/marketplace/create/vehicle*"],
+  "strategy": "react_controlled",
+  "timing": {
+    "afterField": 500,
+    "afterDropdown": 300,
+    "afterDescription": 200,
+    "afterPhotos": 1500,
+    "settle": 1500
+  },
+  "fields": {
+    "price": {
+      "selector": ["input[aria-label=\"Price\"]", "input[placeholder*=\"Price\"]", "input[name*=\"price\"]"],
+      "type": "input"
+    },
+    "year": {
+      "selector": ["input[aria-label=\"Year\"]", "input[placeholder*=\"Year\"]"],
+      "type": "input"
+    },
+    "make": {
+      "selector": ["input[aria-label=\"Make\"]", "input[placeholder*=\"Make\"]"],
+      "type": "input"
+    },
+    "model": {
+      "selector": ["input[aria-label=\"Model\"]", "input[placeholder*=\"Model\"]"],
+      "type": "input"
+    },
+    "mileage": {
+      "selector": ["input[aria-label=\"Mileage\"]", "input[placeholder*=\"Mileage\"]", "input[placeholder*=\"miles\"]"],
+      "type": "input"
+    },
+    "condition": {
+      "selector": ["[aria-label=\"Condition\"]", "[aria-label*=\"Condition\"]"],
+      "type": "dropdown",
+      "valueMap": {
+        "new": "new",
+        "used": "used - good",
+        "cpo": "used - like new",
+        "certified": "used - like new",
+        "excellent": "used - like new",
+        "good": "used - good",
+        "fair": "used - fair"
+      },
+      "default": "used - good"
+    },
+    "fuelType": {
+      "selector": ["[aria-label=\"Fuel type\"]", "[aria-label*=\"Fuel type\"]"],
+      "type": "dropdown",
+      "valueMap": {
+        "gas": "gasoline",
+        "unleaded": "gasoline",
+        "phev": "plug-in hybrid",
+        "plug-in hybrid": "plug-in hybrid",
+        "plug in hybrid": "plug-in hybrid",
+        "electric": "electric",
+        "ev": "electric",
+        "diesel": "diesel",
+        "hybrid": "hybrid",
+        "flex": "flex fuel",
+        "flex fuel": "flex fuel",
+        "e85": "flex fuel"
+      }
+    },
+    "transmission": {
+      "selector": ["[aria-label=\"Transmission\"]", "[aria-label*=\"Transmission\"]"],
+      "type": "dropdown",
+      "valueMap": {
+        "auto": "automatic transmission",
+        "automatic": "automatic transmission",
+        "at": "automatic transmission",
+        "manual": "manual transmission",
+        "mt": "manual transmission",
+        "cvt": "cvt transmission"
+      }
+    },
+    "drivetrain": {
+      "selector": ["[aria-label=\"Drivetrain\"]", "[aria-label*=\"Drivetrain\"]"],
+      "type": "dropdown",
+      "valueMap": {
+        "awd": "all-wheel drive",
+        "4wd": "four-wheel drive",
+        "4x4": "four-wheel drive",
+        "fwd": "front-wheel drive",
+        "rwd": "rear-wheel drive",
+        "2wd": "rear-wheel drive"
+      }
+    },
+    "exteriorColor": {
+      "selector": ["[aria-label=\"Exterior color\"]", "[aria-label*=\"Exterior color\"]"],
+      "type": "dropdown"
+    },
+    "interiorColor": {
+      "selector": ["[aria-label=\"Interior color\"]", "[aria-label*=\"Interior color\"]"],
+      "type": "dropdown"
+    },
+    "bodyStyle": {
+      "selector": ["[aria-label=\"Vehicle type\"]", "[aria-label*=\"Vehicle type\"]"],
+      "type": "dropdown",
+      "valueMap": {
+        "suv": "suv / crossover",
+        "crossover": "suv / crossover",
+        "cuv": "suv / crossover",
+        "truck": "truck",
+        "pickup": "truck",
+        "pickup truck": "truck",
+        "sedan": "sedan",
+        "coupe": "coupe",
+        "convertible": "convertible",
+        "minivan": "van / minivan",
+        "van": "van / minivan",
+        "cargo van": "van / minivan",
+        "passenger van": "van / minivan",
+        "wagon": "wagon",
+        "hatchback": "hatchback"
+      }
+    },
+    "description": {
+      "selector": ["textarea[aria-label=\"Description\"]", "div[role=\"textbox\"][aria-label*=\"escription\"]", "div[contenteditable=\"true\"]"],
+      "type": "description"
+    }
+  },
+  "photos": {
+    "selector": "input[type=\"file\"][accept*=\"image\"]",
+    "enabled": true
+  }
+}

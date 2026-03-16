@@ -1,387 +1,185 @@
+var ADAPTERS = {
+  facebook: {"id":"facebook","name":"Facebook Marketplace","version":"1.0.0","match":["*://www.facebook.com/marketplace/create/vehicle*"],"strategy":"react_controlled","timing":{"afterField":500,"afterDropdown":300,"afterDescription":200,"afterPhotos":1500,"settle":1500},"fields":{"price":{"selector":["input[aria-label=\"Price\"]","input[placeholder*=\"Price\"]","input[name*=\"price\"]"],"type":"input"},"year":{"selector":["input[aria-label=\"Year\"]","input[placeholder*=\"Year\"]"],"type":"input"},"make":{"selector":["input[aria-label=\"Make\"]","input[placeholder*=\"Make\"]"],"type":"input"},"model":{"selector":["input[aria-label=\"Model\"]","input[placeholder*=\"Model\"]"],"type":"input"},"mileage":{"selector":["input[aria-label=\"Mileage\"]","input[placeholder*=\"Mileage\"]","input[placeholder*=\"miles\"]"],"type":"input"},"condition":{"selector":["[aria-label=\"Condition\"]","[aria-label*=\"Condition\"]"],"type":"dropdown","valueMap":{"new":"new","used":"used - good","cpo":"used - like new","certified":"used - like new","excellent":"used - like new","good":"used - good","fair":"used - fair"},"default":"used - good"},"fuelType":{"selector":["[aria-label=\"Fuel type\"]","[aria-label*=\"Fuel type\"]"],"type":"dropdown","valueMap":{"gas":"gasoline","unleaded":"gasoline","phev":"plug-in hybrid","plug-in hybrid":"plug-in hybrid","plug in hybrid":"plug-in hybrid","electric":"electric","ev":"electric","diesel":"diesel","hybrid":"hybrid","flex":"flex fuel","flex fuel":"flex fuel","e85":"flex fuel"}},"transmission":{"selector":["[aria-label=\"Transmission\"]","[aria-label*=\"Transmission\"]"],"type":"dropdown","valueMap":{"auto":"automatic transmission","automatic":"automatic transmission","at":"automatic transmission","manual":"manual transmission","mt":"manual transmission","cvt":"cvt transmission"}},"drivetrain":{"selector":["[aria-label=\"Drivetrain\"]","[aria-label*=\"Drivetrain\"]"],"type":"dropdown","valueMap":{"awd":"all-wheel drive","4wd":"four-wheel drive","4x4":"four-wheel drive","fwd":"front-wheel drive","rwd":"rear-wheel drive","2wd":"rear-wheel drive"}},"exteriorColor":{"selector":["[aria-label=\"Exterior color\"]","[aria-label*=\"Exterior color\"]"],"type":"dropdown"},"interiorColor":{"selector":["[aria-label=\"Interior color\"]","[aria-label*=\"Interior color\"]"],"type":"dropdown"},"bodyStyle":{"selector":["[aria-label=\"Vehicle type\"]","[aria-label*=\"Vehicle type\"]"],"type":"dropdown","valueMap":{"suv":"suv / crossover","crossover":"suv / crossover","cuv":"suv / crossover","truck":"truck","pickup":"truck","pickup truck":"truck","sedan":"sedan","coupe":"coupe","convertible":"convertible","minivan":"van / minivan","van":"van / minivan","cargo van":"van / minivan","passenger van":"van / minivan","wagon":"wagon","hatchback":"hatchback"}},"description":{"selector":["textarea[aria-label=\"Description\"]","div[role=\"textbox\"][aria-label*=\"escription\"]","div[contenteditable=\"true\"]"],"type":"description"}},"photos":{"selector":"input[type=\"file\"][accept*=\"image\"]","enabled":true}},
+
+  craigslist: {"id":"craigslist","name":"Craigslist","version":"1.0.0","match":["*://*.craigslist.org/post*"],"strategy":"standard_html","timing":{"afterField":300,"afterDropdown":200,"afterDescription":200,"afterPhotos":0,"settle":1000},"fields":{"price":{"selector":["input[name=\"price\"]","input#price","input[placeholder*=\"price\"]"],"type":"input"},"year":{"selector":["input[name=\"auto_year\"]","input#auto_year","select[name=\"auto_year\"]"],"type":"input"},"make":{"selector":["input[name=\"auto_make_model\"]","input#auto_make_model"],"type":"input","composite":["make","model"]},"mileage":{"selector":["input[name=\"auto_miles\"]","input#auto_miles"],"type":"input"},"condition":{"selector":["select[name=\"condition\"]","select#condition"],"type":"select","valueMap":{"new":"new","used":"good","cpo":"like new","certified":"like new","excellent":"excellent","good":"good","fair":"fair","salvage":"salvage"},"default":"good"},"fuelType":{"selector":["select[name=\"auto_fuel_type\"]","select#auto_fuel_type"],"type":"select","valueMap":{"gas":"gas","unleaded":"gas","diesel":"diesel","hybrid":"hybrid","electric":"electric","ev":"electric"}},"transmission":{"selector":["select[name=\"auto_transmission\"]","select#auto_transmission"],"type":"select","valueMap":{"auto":"automatic","automatic":"automatic","at":"automatic","manual":"manual","mt":"manual"}},"drivetrain":{"selector":["select[name=\"auto_drivetrain\"]","select#auto_drivetrain"],"type":"select","valueMap":{"awd":"4wd","4wd":"4wd","4x4":"4wd","fwd":"fwd","rwd":"rwd","2wd":"rwd"}},"exteriorColor":{"selector":["select[name=\"auto_paint\"]","select#auto_paint"],"type":"select"},"bodyStyle":{"selector":["select[name=\"auto_body_type\"]","select#auto_body_type"],"type":"select","valueMap":{"suv":"SUV","crossover":"SUV","cuv":"SUV","truck":"pickup","pickup":"pickup","pickup truck":"pickup","sedan":"sedan","coupe":"coupe","convertible":"convertible","minivan":"mini-van","van":"van","wagon":"wagon","hatchback":"hatchback"}},"vin":{"selector":["input[name=\"auto_vin\"]","input#auto_vin"],"type":"input"},"title":{"selector":["input[name=\"PostingTitle\"]","input#PostingTitle"],"type":"input"},"description":{"selector":["textarea[name=\"PostingBody\"]","textarea#PostingBody"],"type":"description"}},"photos":{"enabled":false}},
+
+  offerup: {"id":"offerup","name":"OfferUp","version":"1.0.0","match":["*://offerup.com/post*","*://www.offerup.com/post*"],"strategy":"react_controlled","timing":{"afterField":400,"afterDropdown":300,"afterDescription":200,"afterPhotos":0,"settle":1200},"fields":{"price":{"selector":["input[name=\"price\"]","input[data-testid=\"price\"]","input[placeholder*=\"Price\"]","input[aria-label*=\"Price\"]"],"type":"input"},"title":{"selector":["input[name=\"title\"]","input[data-testid=\"title\"]","input[placeholder*=\"Title\"]","input[aria-label*=\"Title\"]"],"type":"input"},"year":{"selector":["input[name=\"year\"]","select[name=\"year\"]","input[aria-label*=\"Year\"]"],"type":"input"},"make":{"selector":["input[name=\"make\"]","select[name=\"make\"]","input[aria-label*=\"Make\"]"],"type":"input"},"model":{"selector":["input[name=\"model\"]","select[name=\"model\"]","input[aria-label*=\"Model\"]"],"type":"input"},"mileage":{"selector":["input[name=\"mileage\"]","input[name=\"miles\"]","input[aria-label*=\"Mileage\"]","input[placeholder*=\"Mileage\"]"],"type":"input"},"condition":{"selector":["select[name=\"condition\"]","button[aria-label*=\"Condition\"]","[data-testid*=\"condition\"]"],"type":"dropdown","valueMap":{"new":"New","used":"Good","cpo":"Like new","certified":"Like new","excellent":"Like new","good":"Good","fair":"Fair"},"default":"Good"},"transmission":{"selector":["select[name=\"transmission\"]","button[aria-label*=\"Transmission\"]","[data-testid*=\"transmission\"]"],"type":"dropdown","valueMap":{"auto":"Automatic","automatic":"Automatic","at":"Automatic","manual":"Manual","mt":"Manual","cvt":"CVT"}},"drivetrain":{"selector":["select[name=\"drivetrain\"]","button[aria-label*=\"Drivetrain\"]","[data-testid*=\"drivetrain\"]"],"type":"dropdown","valueMap":{"awd":"AWD","4wd":"4WD","4x4":"4WD","fwd":"FWD","rwd":"RWD","2wd":"RWD"}},"fuelType":{"selector":["select[name=\"fuelType\"]","button[aria-label*=\"Fuel\"]","[data-testid*=\"fuel\"]"],"type":"dropdown","valueMap":{"gas":"Gasoline","unleaded":"Gasoline","diesel":"Diesel","hybrid":"Hybrid","electric":"Electric","ev":"Electric"}},"bodyStyle":{"selector":["select[name=\"bodyType\"]","button[aria-label*=\"Body\"]","[data-testid*=\"body\"]"],"type":"dropdown","valueMap":{"suv":"SUV","crossover":"SUV","truck":"Truck","pickup":"Truck","sedan":"Sedan","coupe":"Coupe","convertible":"Convertible","minivan":"Minivan","van":"Van","wagon":"Wagon","hatchback":"Hatchback"}},"exteriorColor":{"selector":["select[name=\"color\"]","input[name=\"color\"]","button[aria-label*=\"Color\"]"],"type":"dropdown"},"vin":{"selector":["input[name=\"vin\"]","input[aria-label*=\"VIN\"]","input[placeholder*=\"VIN\"]"],"type":"input"},"description":{"selector":["textarea[name=\"description\"]","textarea[aria-label*=\"Description\"]","textarea[placeholder*=\"Describe\"]","div[contenteditable=\"true\"]"],"type":"description"}},"photos":{"enabled":false}}
+};
+
 function log(...args) {
   console.log("[Autimik]", ...args);
 }
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-// Strip formatting (commas, spaces, $) before comparing — prevents "24,999".includes("24999") → false
-function normalizeForVerify(s) {
-  return String(s).replace(/[^0-9a-zA-Z]/g, "").toLowerCase();
-}
-
-// Translate DMS abbreviations to the full text Facebook shows in dropdowns
-const DROPDOWN_VALUE_MAP = {
-  // Drivetrain
-  "awd":              "all-wheel drive",
-  "4wd":              "four-wheel drive",
-  "4x4":              "four-wheel drive",
-  "fwd":              "front-wheel drive",
-  "rwd":              "rear-wheel drive",
-  "2wd":              "rear-wheel drive",
-  // Transmission
-  "auto":             "automatic transmission",
-  "automatic":        "automatic transmission",
-  "at":               "automatic transmission",
-  "manual":           "manual transmission",
-  "mt":               "manual transmission",
-  "cvt":              "cvt transmission",
-  // Fuel type
-  "gas":              "gasoline",
-  "unleaded":         "gasoline",
-  "phev":             "plug-in hybrid",
-  "plug-in hybrid":   "plug-in hybrid",
-  "plug in hybrid":   "plug-in hybrid",
-  "electric":         "electric",
-  "ev":               "electric",
-  "diesel":           "diesel",
-  "hybrid":           "hybrid",
-  "flex":             "flex fuel",
-  "flex fuel":        "flex fuel",
-  "e85":              "flex fuel",
-  // Condition
-  "new":              "new",
-  "used":             "used - good",
-  "cpo":              "used - like new",
-  "certified":        "used - like new",
-  "excellent":        "used - like new",
-  "good":             "used - good",
-  "fair":             "used - fair",
-  // Body style / vehicle type
-  "suv":              "suv / crossover",
-  "crossover":        "suv / crossover",
-  "cuv":              "suv / crossover",
-  "truck":            "truck",
-  "pickup":           "truck",
-  "pickup truck":     "truck",
-  "sedan":            "sedan",
-  "coupe":            "coupe",
-  "convertible":      "convertible",
-  "minivan":          "van / minivan",
-  "van":              "van / minivan",
-  "cargo van":        "van / minivan",
-  "passenger van":    "van / minivan",
-  "wagon":            "wagon",
-  "hatchback":        "hatchback",
-};
-
-function mapDropdownValue(value) {
-  const key = String(value).toLowerCase().trim();
-  return DROPDOWN_VALUE_MAP[key] || key;
-}
-
-function waitFor(selectors, timeout = 12000) {
-  const selectorList = Array.isArray(selectors) ? selectors : [selectors];
-  return new Promise((resolve, reject) => {
-    for (const sel of selectorList) {
-      const el = document.querySelector(sel);
-      if (el) {
-        log("Found element immediately:", sel);
-        return resolve(el);
+function findAdapter(url) {
+  for (var id in ADAPTERS) {
+    var adapter = ADAPTERS[id];
+    for (var i = 0; i < adapter.match.length; i++) {
+      var pattern = adapter.match[i]
+        .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, ".*");
+      if (new RegExp("^" + pattern + "$").test(url)) {
+        log("Matched adapter:", adapter.name);
+        return adapter;
       }
     }
+  }
+  log("No adapter matched for:", url);
+  return null;
+}
 
-    const observer = new MutationObserver(() => {
-      for (const sel of selectorList) {
-        const el = document.querySelector(sel);
-        if (el) {
-          log("Found element via observer:", sel);
-          observer.disconnect();
-          clearTimeout(timer);
-          resolve(el);
-          return;
-        }
-      }
+function resolveVehicleValue(vehicle, fieldName, adapterField) {
+  if (adapterField && adapterField.composite) {
+    return adapterField.composite.map(function (f) { return vehicle[f] || ""; }).filter(Boolean).join(" ");
+  }
+  var value = vehicle[fieldName];
+  if (!value && fieldName === "condition") {
+    value = adapterField && adapterField.default ? adapterField.default : "used";
+  }
+  if (!value && fieldName === "title") {
+    value = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(" ");
+  }
+  return value || "";
+}
+
+function buildSummary(results) {
+  var filled = 0;
+  var failed = 0;
+  var skipped = 0;
+  var failedFields = [];
+  for (var i = 0; i < results.length; i++) {
+    if (results[i].status === "filled") filled++;
+    else if (results[i].status === "failed") {
+      failed++;
+      failedFields.push(results[i].field);
+    }
+    else if (results[i].status === "skipped") skipped++;
+  }
+  return {
+    total: results.length,
+    filled: filled,
+    failed: failed,
+    skipped: skipped,
+    failedFields: failedFields,
+    results: results
+  };
+}
+
+var REQUIRED_FIELDS = ["price", "year", "make", "model"];
+
+async function fillWithAdapter(vehicle, adapter) {
+  log("Filling with adapter:", adapter.name);
+  var results = [];
+  var timing = adapter.timing || {};
+
+  var fieldOrder = ["price", "year", "make", "model", "mileage", "vin", "title",
+                    "condition", "fuelType", "transmission", "drivetrain",
+                    "exteriorColor", "interiorColor", "bodyStyle", "description"];
+
+  for (var i = 0; i < fieldOrder.length; i++) {
+    var fieldName = fieldOrder[i];
+    var fieldConfig = adapter.fields[fieldName];
+    if (!fieldConfig) continue;
+
+    var value = resolveVehicleValue(vehicle, fieldName, fieldConfig);
+    if (fieldName === "description" && !value) {
+      value = vehicle.description || FillEngine.buildDescription(vehicle);
+    }
+
+    var result = await FillEngine.fillField(fieldConfig, value, {
+      label: fieldName,
+      strategy: adapter.strategy,
+      afterDelay: fieldConfig.type === "dropdown" ? timing.afterDropdown : timing.afterField
     });
+    results.push(result);
 
-    observer.observe(document.body, { childList: true, subtree: true });
+    var delay = fieldConfig.type === "dropdown" || fieldConfig.type === "select"
+      ? (timing.afterDropdown || 300)
+      : (timing.afterField || 500);
+    await FillEngine.sleep(delay);
+  }
 
-    const timer = setTimeout(() => {
-      observer.disconnect();
-      reject(new Error("Timeout waiting for: " + selectorList.join(" | ")));
-    }, timeout);
-  });
+  var imageUrls = FillEngine.collectImageUrls(vehicle);
+  if (imageUrls.length > 0) {
+    var photoResult = await FillEngine.uploadPhotos(imageUrls, adapter.photos);
+    results.push(photoResult);
+    if (timing.afterPhotos) await FillEngine.sleep(timing.afterPhotos);
+  }
+
+  log("Form fill complete. Settling...");
+  await FillEngine.sleep(timing.settle || 1500);
+
+  return buildSummary(results);
 }
 
-function setNativeValue(element, value) {
-  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-    window.HTMLInputElement.prototype,
-    "value"
-  )?.set;
-  const nativeTextareaValueSetter = Object.getOwnPropertyDescriptor(
-    window.HTMLTextAreaElement.prototype,
-    "value"
-  )?.set;
+async function fillWithAI(vehicle) {
+  log("No adapter found, attempting AI-powered form detection...");
 
-  const setter =
-    element.tagName === "TEXTAREA" ? nativeTextareaValueSetter : nativeInputValueSetter;
+  var cachedMapping = await MappingCache.get(window.location.href);
+  var mapping;
 
-  if (setter) {
-    setter.call(element, value);
+  if (cachedMapping) {
+    log("Using cached AI mapping");
+    mapping = cachedMapping;
   } else {
-    element.value = value;
-  }
-
-  element.dispatchEvent(new Event("input", { bubbles: true }));
-  element.dispatchEvent(new Event("change", { bubbles: true }));
-}
-
-async function fillInput(label, value, fallbackSelectors) {
-  if (!value) return { field: label, status: "skipped" };
-
-  const selectors = [
-    `input[aria-label="${label}"]`,
-    `textarea[aria-label="${label}"]`,
-    ...(fallbackSelectors || []),
-  ];
-
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const el = await waitFor(selectors, 8000);
-      el.scrollIntoView({ block: "center", behavior: "instant" });
-      el.focus();
-      await sleep(100);
-      setNativeValue(el, String(value));
-      await sleep(150);
-
-      const actual = el.value || "";
-      const expectedNorm = normalizeForVerify(String(value)).substring(0, 8);
-      if (normalizeForVerify(actual).includes(expectedNorm)) {
-        log("Filled", label, "with:", value);
-        return { field: label, status: "filled", value };
-      }
-
-      el.click();
-      await sleep(200);
-      setNativeValue(el, String(value));
-      el.blur();
-      await sleep(200);
-
-      const recheck = el.value || "";
-      if (normalizeForVerify(recheck).includes(expectedNorm)) {
-        log("Filled", label, "(retry) with:", value);
-        return { field: label, status: "filled", value };
-      }
-    } catch (e) {
-      if (attempt === 3) return { field: label, status: "failed", error: e.message };
-      await sleep(500);
+    var snapshot = FormScanner.scanPage();
+    if (snapshot.elements.length === 0) {
+      throw new Error("No fillable form elements found on this page");
     }
+    mapping = await AIMapper.generateMapping(snapshot, vehicle);
+    await MappingCache.set(window.location.href, mapping);
   }
-  return { field: label, status: "failed", error: "Exhausted retries" };
-}
 
-async function selectDropdown(label, value) {
-  if (!value) {
-    log("Skipping empty dropdown:", label);
-    return;
-  }
-  try {
-    const trigger = await waitFor([
-      `[aria-label="${label}"]`,
-      `[aria-label*="${label}"]`,
-      `[data-testid*="${label.toLowerCase().replace(/\s+/g, '')}"]`,
-    ]);
-    log("Opening dropdown:", label);
-    trigger.click();
-    await sleep(400);
-
-    const normalizedValue = mapDropdownValue(value);
-    const options = document.querySelectorAll('[role="option"], [role="listbox"] [role="option"]');
-    let matched = false;
-    for (const opt of options) {
-      const text = (opt.textContent || "").toLowerCase().trim();
-      if (text === normalizedValue || text.includes(normalizedValue)) {
-        log("Selecting option:", opt.textContent);
-        opt.click();
-        matched = true;
-        break;
-      }
+  var results = [];
+  for (var i = 0; i < mapping.length; i++) {
+    var map = mapping[i];
+    var value = vehicle[map.vehicleField];
+    if (map.vehicleField === "description" && !value) {
+      value = FillEngine.buildDescription(vehicle);
     }
-    if (!matched) {
-      const allOptions = document.querySelectorAll('[role="option"]');
-      for (const opt of allOptions) {
-        const text = (opt.textContent || "").toLowerCase().trim();
-        if (text === normalizedValue || text.includes(normalizedValue)) {
-          log("Selecting option (broad search):", opt.textContent);
-          opt.click();
-          matched = true;
-          break;
-        }
-      }
+    if (!value) {
+      results.push({ field: map.vehicleField, status: "skipped" });
+      continue;
     }
-    if (!matched) {
-      log("No matching option found for", label, ":", value);
-      document.body.click();
-    }
-    await sleep(300);
-  } catch (e) {
-    log("Could not select dropdown", label, ":", e.message);
+
+    var fieldConfig = {
+      selector: [map.selector],
+      type: map.type || "input",
+      valueMap: map.valueMap
+    };
+    var result = await FillEngine.fillField(fieldConfig, value, { label: map.vehicleField });
+    results.push(result);
+    await FillEngine.sleep(400);
   }
-}
 
-async function fillDescription(text) {
-  if (!text) return;
-  const selectors = [
-    'textarea[aria-label="Description"]',
-    'div[role="textbox"][aria-label*="escription"]',
-    'div[contenteditable="true"]',
-  ];
-  try {
-    const el = await waitFor(selectors);
-    log("Filling description");
-    if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
-      setNativeValue(el, text);
-    } else {
-      el.focus();
-      el.textContent = "";
-      document.execCommand("insertText", false, text);
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-    }
-    log("Description filled");
-  } catch (e) {
-    log("Could not fill description:", e.message);
+  var imageUrls = FillEngine.collectImageUrls(vehicle);
+  if (imageUrls.length > 0) {
+    var photoResult = await FillEngine.uploadPhotos(imageUrls);
+    results.push(photoResult);
   }
-}
 
-function fetchImageViaBackground(url) {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      { type: "FETCH_IMAGE", payload: { url } },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          return reject(new Error(chrome.runtime.lastError.message));
-        }
-        if (!response || !response.success) {
-          return reject(new Error((response && response.error) || "Unknown fetch error"));
-        }
-        resolve(response);
-      }
-    );
-  });
-}
+  log("AI form fill complete. Settling...");
+  await FillEngine.sleep(1200);
 
-function dataUrlToBlob(dataUrl) {
-  const parts = dataUrl.split(",");
-  const mime = parts[0].match(/:(.*?);/)[1];
-  const raw = atob(parts[1]);
-  const arr = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-  return new Blob([arr], { type: mime });
+  return buildSummary(results);
 }
-
-async function uploadPhotos(imageUrls) {
-  if (!imageUrls || imageUrls.length === 0) {
-    log("No images to upload");
-    return;
-  }
-  try {
-    const fileInput = await waitFor(['input[type="file"][accept*="image"]']);
-    log("Found file input, fetching", imageUrls.length, "images via background");
-    const files = [];
-    for (const url of imageUrls) {
-      try {
-        log("Fetching image via background:", url);
-        const result = await fetchImageViaBackground(url);
-        const blob = dataUrlToBlob(result.dataUrl);
-        const fileName = url.split("/").pop()?.split("?")[0] || "vehicle.jpg";
-        const file = new File([blob], fileName, { type: result.mimeType || blob.type || "image/jpeg" });
-        files.push(file);
-      } catch (e) {
-        log("Failed to fetch image:", url, e.message);
-      }
-    }
-    if (files.length > 0) {
-      const dt = new DataTransfer();
-      files.forEach((f) => dt.items.add(f));
-      fileInput.files = dt.files;
-      fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-      log("Uploaded", files.length, "photos");
-    }
-  } catch (e) {
-    log("Could not upload photos:", e.message);
-  }
-}
-
-function buildDescription(vehicle) {
-  const lines = [];
-  if (vehicle.year && vehicle.make && vehicle.model) {
-    lines.push(`${vehicle.year} ${vehicle.make} ${vehicle.model}`);
-  }
-  if (vehicle.trim) lines.push(`Trim: ${vehicle.trim}`);
-  if (vehicle.mileage) lines.push(`Mileage: ${vehicle.mileage} miles`);
-  if (vehicle.transmission) lines.push(`Transmission: ${vehicle.transmission}`);
-  if (vehicle.drivetrain) lines.push(`Drivetrain: ${vehicle.drivetrain}`);
-  if (vehicle.fuelType) lines.push(`Fuel Type: ${vehicle.fuelType}`);
-  if (vehicle.exteriorColor) lines.push(`Exterior Color: ${vehicle.exteriorColor}`);
-  if (vehicle.interiorColor) lines.push(`Interior Color: ${vehicle.interiorColor}`);
-  if (vehicle.vin) lines.push(`VIN: ${vehicle.vin}`);
-  if (vehicle.stockNumber) lines.push(`Stock #: ${vehicle.stockNumber}`);
-  lines.push("");
-  lines.push("Contact us for more details and to schedule a test drive!");
-  return lines.join("\n");
-}
-
-const REQUIRED_FIELDS = ["Price", "Year", "Make", "Model"];
 
 async function fillForm(vehicle) {
   log("Starting form fill for:", vehicle.year, vehicle.make, vehicle.model);
-  const results = [];
 
-  const fields = [
-    { label: "Price", value: vehicle.price, fallback: ['input[placeholder*="Price"]', 'input[name*="price"]'] },
-    { label: "Year", value: vehicle.year, fallback: ['input[placeholder*="Year"]'] },
-    { label: "Make", value: vehicle.make, fallback: ['input[placeholder*="Make"]'] },
-    { label: "Model", value: vehicle.model, fallback: ['input[placeholder*="Model"]'] },
-    { label: "Mileage", value: vehicle.mileage, fallback: ['input[placeholder*="Mileage"]', 'input[placeholder*="miles"]'] },
-  ];
+  var adapter = findAdapter(window.location.href);
+  var summary;
 
-  for (const { label, value, fallback } of fields) {
-    const result = await fillInput(label, value, fallback);
-    results.push(result);
-    await sleep(500);
+  if (adapter) {
+    summary = await fillWithAdapter(vehicle, adapter);
+  } else {
+    summary = await fillWithAI(vehicle);
   }
 
-  await selectDropdown("Condition", vehicle.condition || "Used");
-  await selectDropdown("Fuel type", vehicle.fuelType);
-  await selectDropdown("Transmission", vehicle.transmission);
-  await selectDropdown("Drivetrain", vehicle.drivetrain);
-  await selectDropdown("Exterior color", vehicle.exteriorColor);
-  await selectDropdown("Interior color", vehicle.interiorColor);
-  await selectDropdown("Vehicle type", vehicle.bodyStyle);
-
-  const description = vehicle.description || buildDescription(vehicle);
-  await fillDescription(description);
-
-  const imageUrls = [];
-  if (vehicle.imageUrls && Array.isArray(vehicle.imageUrls) && vehicle.imageUrls.length > 0) {
-    imageUrls.push(...vehicle.imageUrls);
-  } else if (typeof vehicle.imageUrl === "string" && vehicle.imageUrl.trim().length > 0) {
-    const parsed = vehicle.imageUrl.split(/[\s,;|]+/).filter((u) => u.startsWith("http"));
-    imageUrls.push(...parsed);
-  }
-  await uploadPhotos(imageUrls);
-
-  log("Form fill complete. Settling...");
-  await sleep(1500);
-
-  const filled = results.filter((r) => r.status === "filled").length;
-  const failed = results.filter((r) => r.status === "failed");
-  const skipped = results.filter((r) => r.status === "skipped").length;
-  const failedFields = failed.map((r) => r.field);
-
-  const summary = {
-    total: results.length,
-    filled,
-    failed: failed.length,
-    skipped,
-    failedFields,
-    results,
-  };
-
-  const requiredFailed = failedFields.filter((f) => REQUIRED_FIELDS.includes(f));
+  var requiredFailed = summary.failedFields.filter(function (f) {
+    return REQUIRED_FIELDS.indexOf(f) !== -1;
+  });
   if (requiredFailed.length > 0) {
-    const msg = "Failed to fill required fields: " + requiredFailed.join(", ");
+    var msg = "Failed to fill required fields: " + requiredFailed.join(", ");
     log(msg);
     throw new Error(msg);
   }
@@ -390,7 +188,7 @@ async function fillForm(vehicle) {
   return summary;
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
   if (message.type === "PING") {
     sendResponse({ alive: true });
     return;
@@ -399,10 +197,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "FILL_FORM") {
     log("Received FILL_FORM message");
     fillForm(message.payload)
-      .then((summary) => {
-        sendResponse({ success: true, summary });
+      .then(function (summary) {
+        sendResponse({ success: true, summary: summary });
       })
-      .catch((err) => {
+      .catch(function (err) {
         log("Form fill error:", err.message);
         sendResponse({ success: false, error: err.message });
       });

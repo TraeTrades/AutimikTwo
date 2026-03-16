@@ -1,4 +1,16 @@
-const COLUMN_ALIASES = {
+var SITE_URLS = {
+  facebook: "https://www.facebook.com/marketplace/create/vehicle",
+  craigslist: "https://post.craigslist.org/",
+  offerup: "https://offerup.com/post/"
+};
+
+var SITE_PATTERNS = {
+  facebook: "facebook.com/marketplace/create/vehicle",
+  craigslist: "craigslist.org/post",
+  offerup: "offerup.com/post"
+};
+
+var COLUMN_ALIASES = {
   year: ["year", "yr", "model_year"],
   make: ["make", "manufacturer", "brand"],
   model: ["model", "model_name"],
@@ -17,7 +29,7 @@ const COLUMN_ALIASES = {
   imageUrls: ["photos", "image_urls", "photo_urls"],
   title: ["title"],
   description: ["description"],
-  condition: ["condition"],
+  condition: ["condition"]
 };
 
 function vehicleKey(v) {
@@ -26,29 +38,37 @@ function vehicleKey(v) {
   return "id:" + v.id;
 }
 
-let vehicles = [];
-let listedMap = {};
-let isOnFBPage = false;
-let autoAdvance = false;
+var vehicles = [];
+var listedMap = {};
+var isOnTargetPage = false;
+var currentTabUrl = "";
+var autoAdvance = false;
 
-const uploadView = document.getElementById("uploadView");
-const inventoryView = document.getElementById("inventoryView");
-const vehicleList = document.getElementById("vehicleList");
-const searchInput = document.getElementById("searchInput");
-const statusBar = document.getElementById("statusBar");
-const btnClear = document.getElementById("btnClear");
-const btnAuto = document.getElementById("btnAuto");
-const dropZone = document.getElementById("dropZone");
-const fileInput = document.getElementById("fileInput");
-const toast = document.getElementById("toast");
+var uploadView = document.getElementById("uploadView");
+var inventoryView = document.getElementById("inventoryView");
+var vehicleList = document.getElementById("vehicleList");
+var searchInput = document.getElementById("searchInput");
+var statusBar = document.getElementById("statusBar");
+var btnClear = document.getElementById("btnClear");
+var btnAuto = document.getElementById("btnAuto");
+var dropZone = document.getElementById("dropZone");
+var fileInput = document.getElementById("fileInput");
+var toast = document.getElementById("toast");
+var targetSiteSelect = document.getElementById("targetSite");
+var siteSelectorDiv = document.getElementById("siteSelector");
+var settingsPanel = document.getElementById("settingsPanel");
+var btnSettings = document.getElementById("btnSettings");
+var apiKeyInput = document.getElementById("apiKeyInput");
+var btnSaveKey = document.getElementById("btnSaveKey");
+var btnClearCache = document.getElementById("btnClearCache");
 
 function showToast(message, type) {
   toast.textContent = message;
   toast.className = "toast " + type;
-  requestAnimationFrame(() => {
+  requestAnimationFrame(function () {
     toast.classList.add("show");
   });
-  setTimeout(() => {
+  setTimeout(function () {
     toast.classList.remove("show");
   }, 2500);
 }
@@ -62,19 +82,73 @@ function updateStatus() {
     setStatus("Ready");
     return;
   }
-  const listedCount = vehicles.filter((v) => !!listedMap[vehicleKey(v)]).length;
-  const unlistedCount = vehicles.length - listedCount;
-  setStatus(`${listedCount} listed \u00b7 ${unlistedCount} remaining \u00b7 ${vehicles.length} total`);
+  var listedCount = vehicles.filter(function (v) { return !!listedMap[vehicleKey(v)]; }).length;
+  var unlistedCount = vehicles.length - listedCount;
+  setStatus(listedCount + " listed \u00b7 " + unlistedCount + " remaining \u00b7 " + vehicles.length + " total");
+}
+
+function getSelectedSite() {
+  return targetSiteSelect.value;
+}
+
+function isKnownSiteUrl(url) {
+  for (var key in SITE_PATTERNS) {
+    if (url.includes(SITE_PATTERNS[key])) return true;
+  }
+  return false;
+}
+
+function checkPageMatch() {
+  var site = getSelectedSite();
+  if (site === "current") {
+    return currentTabUrl && currentTabUrl.startsWith("https://");
+  }
+  var pattern = SITE_PATTERNS[site];
+  return pattern && currentTabUrl.includes(pattern);
+}
+
+function getWrongPageMessage() {
+  var site = getSelectedSite();
+  if (site === "current") {
+    if (!currentTabUrl || !currentTabUrl.startsWith("https://")) {
+      return "Navigate to a listing site first (HTTPS required). The current tab is not a supported page.";
+    }
+    if (!isKnownSiteUrl(currentTabUrl)) {
+      return "This is an unknown listing site. AI mode will be used to detect form fields. An Anthropic API key is required (see settings).";
+    }
+    return "";
+  }
+  var siteNames = {
+    facebook: "Facebook Marketplace vehicle listing page",
+    craigslist: "Craigslist posting page",
+    offerup: "OfferUp posting page"
+  };
+  return "You're not on the " + (siteNames[site] || "correct listing page") + ".";
+}
+
+function getOpenLink() {
+  var site = getSelectedSite();
+  return SITE_URLS[site] || SITE_URLS.facebook;
+}
+
+function getSiteName() {
+  var site = getSelectedSite();
+  var names = {
+    facebook: "FB Marketplace",
+    craigslist: "Craigslist",
+    offerup: "OfferUp"
+  };
+  return names[site] || "listing site";
 }
 
 function parseCSV(text) {
-  const results = [];
-  let fields = [];
-  let current = "";
-  let inQuotes = false;
+  var results = [];
+  var fields = [];
+  var current = "";
+  var inQuotes = false;
 
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
     if (ch === '"') {
       if (inQuotes && text[i + 1] === '"') {
         current += '"';
@@ -105,14 +179,16 @@ function parseCSV(text) {
 }
 
 function autoMapColumns(headers) {
-  const mapping = {};
-  const normalized = headers.map((h) => h.toLowerCase().trim().replace(/[^a-z0-9_#]/g, "_"));
+  var mapping = {};
+  var normalized = headers.map(function (h) { return h.toLowerCase().trim().replace(/[^a-z0-9_#]/g, "_"); });
 
-  for (const [field, aliases] of Object.entries(COLUMN_ALIASES)) {
-    for (let i = 0; i < normalized.length; i++) {
-      const h = normalized[i];
-      for (const alias of aliases) {
-        const normAlias = alias.replace(/[^a-z0-9_#]/g, "_");
+  for (var field in COLUMN_ALIASES) {
+    var aliases = COLUMN_ALIASES[field];
+    for (var i = 0; i < normalized.length; i++) {
+      var h = normalized[i];
+      for (var j = 0; j < aliases.length; j++) {
+        var alias = aliases[j];
+        var normAlias = alias.replace(/[^a-z0-9_#]/g, "_");
         if (h === normAlias || h === alias || h.includes(normAlias)) {
           if (mapping[field] === undefined) {
             mapping[field] = i;
@@ -126,23 +202,26 @@ function autoMapColumns(headers) {
 }
 
 function processCSV(text) {
-  const rows = [];
-  let headers = null;
-  let mapping = null;
+  var rows = [];
+  var headers = null;
+  var mapping = null;
 
-  for (const fields of parseCSV(text)) {
+  var parsed = parseCSV(text);
+  for (var r = 0; r < parsed.length; r++) {
+    var fields = parsed[r];
     if (!headers) {
       headers = fields;
       mapping = autoMapColumns(headers);
       continue;
     }
-    const vehicle = { id: "v_" + rows.length + "_" + Date.now() };
-    for (const [field, colIdx] of Object.entries(mapping)) {
-      let val = fields[colIdx] !== undefined ? fields[colIdx].trim() : "";
+    var vehicle = { id: "v_" + rows.length + "_" + Date.now() };
+    for (var field in mapping) {
+      var colIdx = mapping[field];
+      var val = fields[colIdx] !== undefined ? fields[colIdx].trim() : "";
       if (field === "imageUrls" && val) {
-        vehicle.imageUrls = val.split(/[\s,|;]+/).map((u) => u.trim()).filter((u) => u.startsWith("http"));
+        vehicle.imageUrls = val.split(/[\s,|;]+/).map(function (u) { return u.trim(); }).filter(function (u) { return u.startsWith("http"); });
       } else if (field === "imageUrl" && val) {
-        const urls = val.split(/[\s,|;]+/).map((u) => u.trim()).filter((u) => u.startsWith("http"));
+        var urls = val.split(/[\s,|;]+/).map(function (u) { return u.trim(); }).filter(function (u) { return u.startsWith("http"); });
         if (urls.length > 1) {
           vehicle.imageUrls = (vehicle.imageUrls || []).concat(urls);
         } else {
@@ -166,46 +245,43 @@ function processCSV(text) {
 }
 
 function getNextUnlisted(currentVehicleId) {
-  const idx = vehicles.findIndex((v) => v.id === currentVehicleId);
-  for (let i = idx + 1; i < vehicles.length; i++) {
+  var idx = vehicles.findIndex(function (v) { return v.id === currentVehicleId; });
+  for (var i = idx + 1; i < vehicles.length; i++) {
     if (!listedMap[vehicleKey(vehicles[i])]) return vehicles[i];
   }
   return null;
 }
 
 function listVehicle(vehicle) {
-  const btn = vehicleList.querySelector(`.btn-list[data-id="${vehicle.id}"]`);
+  var btn = vehicleList.querySelector('.btn-list[data-id="' + vehicle.id + '"]');
   if (btn) {
     btn.disabled = true;
     btn.textContent = "Filling...";
   }
   setStatus("Filling form...");
 
+  var targetSite = getSelectedSite();
+
   chrome.runtime.sendMessage(
-    { type: "LIST_VEHICLE", payload: { vehicle } },
-    (response) => {
+    { type: "LIST_VEHICLE", payload: { vehicle: vehicle, targetSite: targetSite } },
+    function (response) {
       if (response && response.success) {
-        const key = vehicleKey(vehicle);
-        chrome.runtime.sendMessage(
-          { type: "MARK_LISTED", payload: { vehicleKey: key } },
-          () => {
-            listedMap[key] = { timestamp: Date.now() };
-            showToast("Listed! \u2713", "success");
-            renderVehicles(searchInput.value);
-            if (autoAdvance) {
-              const next = getNextUnlisted(vehicle.id);
-              if (next) {
-                setTimeout(() => listVehicle(next), 2000);
-              } else {
-                setStatus("All vehicles listed!");
-              }
-            } else {
-              updateStatus();
-            }
+        var key = vehicleKey(vehicle);
+        listedMap[key] = { timestamp: Date.now() };
+        showToast("Listed! \u2713", "success");
+        renderVehicles(searchInput.value);
+        if (autoAdvance) {
+          var next = getNextUnlisted(vehicle.id);
+          if (next) {
+            setTimeout(function () { listVehicle(next); }, 2000);
+          } else {
+            setStatus("All vehicles listed!");
           }
-        );
+        } else {
+          updateStatus();
+        }
       } else {
-        const err = response ? response.error : "Unknown error";
+        var err = response ? response.error : "Unknown error";
         showToast("Error: " + err, "error");
         updateStatus();
         if (btn) {
@@ -219,73 +295,83 @@ function listVehicle(vehicle) {
 
 function renderVehicles(filter) {
   vehicleList.innerHTML = "";
-  const query = (filter || "").toLowerCase();
-  const filtered = vehicles.filter((v) => {
+  var query = (filter || "").toLowerCase();
+  var filtered = vehicles.filter(function (v) {
     if (!query) return true;
-    const text = [v.year, v.make, v.model, v.trim, v.vin, v.stockNumber, v.title]
+    var text = [v.year, v.make, v.model, v.trim, v.vin, v.stockNumber, v.title]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
     return text.includes(query);
   });
 
-  if (!isOnFBPage) {
-    const warn = document.createElement("div");
+  isOnTargetPage = checkPageMatch();
+  var wrongPageMsg = getWrongPageMessage();
+
+  if (!isOnTargetPage) {
+    var warn = document.createElement("div");
     warn.className = "wrong-page";
-    warn.innerHTML = `
-      <span class="wrong-page-icon">&#9888;&#65039;</span>
-      <p>You're not on the Facebook Marketplace vehicle listing page.</p>
-      <a id="openFBLink" href="#">Open FB Marketplace &rarr;</a>
-    `;
+    warn.innerHTML =
+      '<span class="wrong-page-icon">&#9888;&#65039;</span>' +
+      '<p>' + wrongPageMsg + '</p>' +
+      '<a id="openSiteLink" href="#">Open ' + getSiteName() + ' &rarr;</a>';
     vehicleList.appendChild(warn);
-    warn.querySelector("#openFBLink").addEventListener("click", (e) => {
+    warn.querySelector("#openSiteLink").addEventListener("click", function (e) {
       e.preventDefault();
-      chrome.tabs.create({ url: "https://www.facebook.com/marketplace/create/vehicle" });
+      chrome.tabs.create({ url: getOpenLink() });
     });
+  } else if (getSelectedSite() === "current" && wrongPageMsg) {
+    var info = document.createElement("div");
+    info.className = "wrong-page";
+    info.style.borderColor = "#1e40af";
+    info.innerHTML =
+      '<span class="wrong-page-icon">&#128300;</span>' +
+      '<p style="color:#93c5fd;">' + wrongPageMsg + '</p>';
+    vehicleList.appendChild(info);
   }
 
   if (filtered.length === 0 && query) {
     vehicleList.innerHTML += '<div style="text-align:center;padding:20px;color:#64748b;font-size:13px;">No vehicles match your search</div>';
   }
 
-  filtered.forEach((v) => {
-    const isListed = !!listedMap[vehicleKey(v)];
-    const card = document.createElement("div");
+  filtered.forEach(function (v) {
+    var isListed = !!listedMap[vehicleKey(v)];
+    var card = document.createElement("div");
     card.className = "vehicle-card" + (isListed ? " listed" : "");
 
-    const thumbSrc = v.imageUrl || (v.imageUrls && v.imageUrls[0]) || "";
-    const displayTitle = v.title || [v.year, v.make, v.model].filter(Boolean).join(" ");
-    const priceDisplay = v.price ? "$" + Number(v.price).toLocaleString() : "";
-    const mileageDisplay = v.mileage ? Number(v.mileage).toLocaleString() + " mi" : "";
+    var thumbSrc = v.imageUrl || (v.imageUrls && v.imageUrls[0]) || "";
+    var displayTitle = v.title || [v.year, v.make, v.model].filter(Boolean).join(" ");
+    var priceDisplay = v.price ? "$" + Number(v.price).toLocaleString() : "";
+    var mileageDisplay = v.mileage ? Number(v.mileage).toLocaleString() + " mi" : "";
 
     if (thumbSrc) {
-      const img = document.createElement("img");
+      var img = document.createElement("img");
       img.className = "vehicle-thumb";
       img.src = thumbSrc;
       img.alt = displayTitle;
       img.onerror = function () { this.style.display = "none"; };
       card.appendChild(img);
     } else {
-      const placeholder = document.createElement("div");
+      var placeholder = document.createElement("div");
       placeholder.className = "vehicle-thumb";
       card.appendChild(placeholder);
     }
 
-    const info = document.createElement("div");
+    var info = document.createElement("div");
     info.className = "vehicle-info";
-    const titleEl = document.createElement("div");
+    var titleEl = document.createElement("div");
     titleEl.className = "vehicle-title";
     titleEl.textContent = displayTitle;
     info.appendChild(titleEl);
-    const meta = document.createElement("div");
+    var meta = document.createElement("div");
     meta.className = "vehicle-meta";
     if (priceDisplay) {
-      const priceSpan = document.createElement("span");
+      var priceSpan = document.createElement("span");
       priceSpan.textContent = priceDisplay;
       meta.appendChild(priceSpan);
     }
     if (mileageDisplay) {
-      const mileSpan = document.createElement("span");
+      var mileSpan = document.createElement("span");
       mileSpan.textContent = mileageDisplay;
       meta.appendChild(mileSpan);
     }
@@ -293,12 +379,12 @@ function renderVehicles(filter) {
     card.appendChild(info);
 
     if (isListed) {
-      const badge = document.createElement("div");
+      var badge = document.createElement("div");
       badge.className = "listed-badge";
       badge.textContent = "Listed";
       card.appendChild(badge);
     } else {
-      const btn = document.createElement("button");
+      var btn = document.createElement("button");
       btn.className = "btn-list";
       btn.dataset.id = v.id;
       btn.textContent = "List It";
@@ -314,6 +400,7 @@ function renderVehicles(filter) {
 function showUploadView() {
   uploadView.classList.remove("hidden");
   inventoryView.classList.add("hidden");
+  siteSelectorDiv.classList.add("hidden");
   btnClear.classList.add("hidden");
   btnAuto.classList.add("hidden");
   setStatus("Ready");
@@ -322,6 +409,7 @@ function showUploadView() {
 function showInventoryView() {
   uploadView.classList.add("hidden");
   inventoryView.classList.remove("hidden");
+  siteSelectorDiv.classList.remove("hidden");
   btnClear.classList.remove("hidden");
   btnAuto.classList.remove("hidden");
   renderVehicles(searchInput.value);
@@ -333,9 +421,9 @@ function handleFile(file) {
     return;
   }
   setStatus("Reading CSV...");
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const text = e.target.result;
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    var text = e.target.result;
     vehicles = processCSV(text);
     if (vehicles.length === 0) {
       showToast("No vehicles found in CSV", "error");
@@ -343,8 +431,8 @@ function handleFile(file) {
       return;
     }
     chrome.runtime.sendMessage(
-      { type: "SAVE_INVENTORY", payload: { vehicles } },
-      () => {
+      { type: "SAVE_INVENTORY", payload: { vehicles: vehicles } },
+      function () {
         showToast(vehicles.length + " vehicles loaded", "success");
         showInventoryView();
       }
@@ -353,39 +441,43 @@ function handleFile(file) {
   reader.readAsText(file);
 }
 
-dropZone.addEventListener("click", () => fileInput.click());
-fileInput.addEventListener("change", (e) => {
+dropZone.addEventListener("click", function () { fileInput.click(); });
+fileInput.addEventListener("change", function (e) {
   if (e.target.files[0]) handleFile(e.target.files[0]);
 });
-dropZone.addEventListener("dragover", (e) => {
+dropZone.addEventListener("dragover", function (e) {
   e.preventDefault();
   dropZone.classList.add("dragover");
 });
-dropZone.addEventListener("dragleave", () => {
+dropZone.addEventListener("dragleave", function () {
   dropZone.classList.remove("dragover");
 });
-dropZone.addEventListener("drop", (e) => {
+dropZone.addEventListener("drop", function (e) {
   e.preventDefault();
   dropZone.classList.remove("dragover");
   if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
 
-searchInput.addEventListener("input", () => {
+searchInput.addEventListener("input", function () {
   renderVehicles(searchInput.value);
 });
 
-vehicleList.addEventListener("click", (e) => {
-  const btn = e.target.closest(".btn-list");
+targetSiteSelect.addEventListener("change", function () {
+  renderVehicles(searchInput.value);
+});
+
+vehicleList.addEventListener("click", function (e) {
+  var btn = e.target.closest(".btn-list");
   if (!btn) return;
-  const vehicleId = btn.dataset.id;
-  const vehicle = vehicles.find((v) => v.id === vehicleId);
+  var vehicleId = btn.dataset.id;
+  var vehicle = vehicles.find(function (v) { return v.id === vehicleId; });
   if (!vehicle) return;
   listVehicle(vehicle);
 });
 
-btnClear.addEventListener("click", () => {
+btnClear.addEventListener("click", function () {
   if (!confirm("Clear all inventory data?")) return;
-  chrome.runtime.sendMessage({ type: "CLEAR_INVENTORY" }, () => {
+  chrome.runtime.sendMessage({ type: "CLEAR_INVENTORY" }, function () {
     vehicles = [];
     listedMap = {};
     autoAdvance = false;
@@ -396,19 +488,43 @@ btnClear.addEventListener("click", () => {
   });
 });
 
-btnAuto.addEventListener("click", () => {
+btnAuto.addEventListener("click", function () {
   autoAdvance = !autoAdvance;
   btnAuto.textContent = autoAdvance ? "Auto: ON" : "Auto: OFF";
   btnAuto.classList.toggle("on", autoAdvance);
 });
 
-chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+btnSettings.addEventListener("click", function () {
+  settingsPanel.classList.toggle("hidden");
+  if (!settingsPanel.classList.contains("hidden")) {
+    chrome.runtime.sendMessage({ type: "GET_API_KEY" }, function (response) {
+      if (response && response.apiKey) {
+        apiKeyInput.value = response.apiKey;
+      }
+    });
+  }
+});
+
+btnSaveKey.addEventListener("click", function () {
+  var key = apiKeyInput.value.trim();
+  chrome.runtime.sendMessage({ type: "SAVE_API_KEY", payload: { apiKey: key } }, function () {
+    showToast(key ? "API key saved" : "API key cleared", "success");
+  });
+});
+
+btnClearCache.addEventListener("click", function () {
+  chrome.runtime.sendMessage({ type: "CLEAR_SITE_CACHE" }, function () {
+    showToast("Site cache cleared", "success");
+  });
+});
+
+chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
   if (tabs[0] && tabs[0].url) {
-    isOnFBPage = tabs[0].url.includes("facebook.com/marketplace/create/vehicle");
+    currentTabUrl = tabs[0].url;
   }
 
-  chrome.runtime.sendMessage({ type: "GET_INVENTORY" }, (invResponse) => {
-    chrome.runtime.sendMessage({ type: "GET_LISTED" }, (listedResponse) => {
+  chrome.runtime.sendMessage({ type: "GET_INVENTORY" }, function (invResponse) {
+    chrome.runtime.sendMessage({ type: "GET_LISTED" }, function (listedResponse) {
       if (listedResponse && listedResponse.listed) {
         listedMap = listedResponse.listed;
       }
