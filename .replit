@@ -40,3 +40,6 @@ outputType = "webview"
 deploymentTarget = "static"
 build = ["npm", "run", "build"]
 publicDir = "dist/public"
+
+[nix]
+channel = "stable-25_05"
