@@ -4,6 +4,9 @@ var SITE_URLS = {
   offerup: "https://offerup.com/post/"
 };
 
+var fillLog = [];
+var MAX_LOG_ENTRIES = 60;
+
 function vehicleKey(v) {
   if (v.vin && v.vin.length >= 6) return "vin:" + v.vin.toUpperCase();
   if (v.stockNumber && v.stockNumber.length >= 2) return "stk:" + v.stockNumber;
@@ -32,6 +35,17 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
   var type = message.type;
   var payload = message.payload;
 
+  if (type === "FILL_STATUS") {
+    var entry = {
+      step: (payload && payload.step) || "",
+      detail: (payload && payload.detail) || "",
+      ts: Date.now()
+    };
+    fillLog.push(entry);
+    if (fillLog.length > MAX_LOG_ENTRIES) fillLog.shift();
+    return; // no response needed; popup receives it directly
+  }
+
   switch (type) {
     case "SAVE_INVENTORY": {
       chrome.storage.local.set({ autimik_inventory: payload.vehicles }, function () {
@@ -47,7 +61,13 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
       return true;
     }
 
+    case "GET_FILL_LOG": {
+      sendResponse({ success: true, log: fillLog });
+      return true;
+    }
+
     case "LIST_VEHICLE": {
+      fillLog = []; // reset log for new fill
       var targetSite = payload.targetSite || "facebook";
 
       function getTargetUrl(site, callback) {

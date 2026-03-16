@@ -214,7 +214,7 @@ var FillEngine = (function () {
       var trigger = await waitFor(selectors, timeout);
       log("Opening dropdown:", label);
       trigger.click();
-      await sleep(400);
+      await waitFor('[role="option"]', 2500).catch(function () {});
 
       var normalizedValue = String(resolvedValue).toLowerCase().trim();
       var optionSelectors = document.querySelectorAll('[role="option"], [role="listbox"] [role="option"]');
@@ -305,6 +305,20 @@ var FillEngine = (function () {
     var label = options.label || "description";
     var timeout = options.timeout || 4000;
     if (!text) return { field: label, status: "skipped" };
+
+    // Truncate at first page break (\f / form feed)
+    var pageBreak = text.indexOf("\f");
+    if (pageBreak !== -1) {
+      text = text.substring(0, pageBreak).trimEnd();
+      log("Description truncated at page break");
+    }
+    // Respect character limit
+    if (options.maxLength && text.length > options.maxLength) {
+      text = text.substring(0, options.maxLength);
+      log("Description truncated to", options.maxLength, "chars");
+    }
+    if (!text) return { field: label, status: "skipped" };
+
     try {
       var el = await waitFor(selectors, timeout);
       log("Filling description");
@@ -312,7 +326,7 @@ var FillEngine = (function () {
         el.focus();
         el.click();
         await sleep(80);
-        await typeCharByChar(el, text);
+        setNativeValue(el, text);
         el.dispatchEvent(new Event("change", { bubbles: true }));
         el.blur();
       } else {
@@ -497,7 +511,8 @@ var FillEngine = (function () {
       label: options.label || fieldConfig.label || "field",
       valueMap: fieldConfig.valueMap,
       afterDelay: options.afterDelay,
-      timeout: options.timeout
+      timeout: options.timeout,
+      maxLength: fieldConfig.maxLength
     };
 
     switch (fieldConfig.type) {

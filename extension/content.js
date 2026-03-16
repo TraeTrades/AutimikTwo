@@ -134,7 +134,8 @@ var ADAPTERS = {
           "div[contenteditable=\"true\"]",
           "textarea"
         ],
-        "type": "description"
+        "type": "description",
+        "maxLength": 4096
       }
     }
   },

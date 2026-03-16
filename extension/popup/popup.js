@@ -69,6 +69,32 @@ var errorSteps = document.getElementById("errorSteps");
 var btnRetry = document.getElementById("btnRetry");
 var btnDismiss = document.getElementById("btnDismiss");
 
+var monitorWindowId = null;
+
+function openMonitorWindow(vehicleLabel) {
+  var url = chrome.runtime.getURL("popup/monitor.html") +
+    "?v=" + encodeURIComponent(vehicleLabel || "");
+  if (monitorWindowId !== null) {
+    chrome.windows.get(monitorWindowId, function (win) {
+      if (chrome.runtime.lastError || !win) {
+        monitorWindowId = null;
+        createMonitorWindow(url);
+      } else {
+        chrome.windows.update(monitorWindowId, { focused: true });
+      }
+    });
+  } else {
+    createMonitorWindow(url);
+  }
+}
+
+function createMonitorWindow(url) {
+  chrome.windows.create(
+    { url: url, type: "popup", width: 360, height: 420, focused: false },
+    function (win) { monitorWindowId = win ? win.id : null; }
+  );
+}
+
 function showErrorDialog(title, body, steps) {
   errorTitle.textContent = title;
   errorBody.textContent = body;
@@ -314,6 +340,9 @@ function getNextUnlisted(currentVehicleId) {
 
 function listVehicle(vehicle) {
   lastVehicle = vehicle;
+  var label = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(" ") || vehicle.title || "Vehicle";
+  openMonitorWindow(label);
+
   var btn = vehicleList.querySelector('.btn-list[data-id="' + vehicle.id + '"]');
   if (btn) {
     btn.disabled = true;
@@ -327,12 +356,15 @@ function listVehicle(vehicle) {
     { type: "LIST_VEHICLE", payload: { vehicle: vehicle, targetSite: targetSite } },
     function (response) {
       if (chrome.runtime.lastError) {
-        var info = categorizeError(chrome.runtime.lastError.message || "");
+        var errMsg = chrome.runtime.lastError.message || "";
+        chrome.runtime.sendMessage({ type: "FILL_DONE", payload: { success: false, message: errMsg } });
+        var info = categorizeError(errMsg);
         showErrorDialog(info.title, info.body, info.steps);
         if (btn) { btn.disabled = false; btn.textContent = "List It"; }
         return;
       }
       if (response && response.success) {
+        chrome.runtime.sendMessage({ type: "FILL_DONE", payload: { success: true, message: "Listed successfully!" } });
         var key = vehicleKey(vehicle);
         listedMap[key] = { timestamp: Date.now() };
         showToast("Listed! \u2713", "success");
@@ -349,6 +381,7 @@ function listVehicle(vehicle) {
         }
       } else {
         var err = response ? response.error : "Unknown error";
+        chrome.runtime.sendMessage({ type: "FILL_DONE", payload: { success: false, message: err } });
         var info = categorizeError(err);
         showErrorDialog(info.title, info.body, info.steps);
         if (btn) { btn.disabled = false; btn.textContent = "List It"; }
@@ -594,9 +627,9 @@ btnDismiss.addEventListener("click", function () {
 
 chrome.runtime.onMessage.addListener(function (message) {
   if (message.type === "FILL_STATUS" && message.payload) {
-    var text = message.payload.step || "";
-    if (message.payload.detail) text += " " + message.payload.detail;
-    setStatus(text);
+    var step = message.payload.step || "";
+    var detail = message.payload.detail || "";
+    setStatus(step + (detail ? " " + detail : ""));
   }
 });
 
