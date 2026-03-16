@@ -123,6 +123,7 @@ var ADAPTERS = {
         "selector": [
           "textarea[aria-label=\"Description\"]",
           "[aria-label*=\"Description\"]",
+          "[data-testid*=\"description\"]",
           "div[role=\"textbox\"][aria-label*=\"escription\"]",
           "div[contenteditable=\"true\"]",
           "textarea"

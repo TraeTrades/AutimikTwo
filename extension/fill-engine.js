@@ -438,15 +438,32 @@ var FillEngine = (function () {
     return lines.join("\n");
   }
 
+  function extractUrls(str) {
+    if (!str || typeof str !== "string") return [];
+    var matches = str.match(/https?:\/\/[^\s,;|"'\[\]<>]+/g);
+    return matches ? matches.map(function (u) { return u.replace(/[)}\]]+$/, ""); }) : [];
+  }
+
   function collectImageUrls(vehicle) {
     var urls = [];
     if (vehicle.imageUrls && Array.isArray(vehicle.imageUrls) && vehicle.imageUrls.length > 0) {
-      urls.push.apply(urls, vehicle.imageUrls);
+      for (var i = 0; i < vehicle.imageUrls.length; i++) {
+        var extracted = extractUrls(String(vehicle.imageUrls[i]));
+        urls.push.apply(urls, extracted);
+      }
     } else if (typeof vehicle.imageUrl === "string" && vehicle.imageUrl.trim().length > 0) {
-      var parsed = vehicle.imageUrl.split(/[\s,;|]+/).filter(function (u) { return u.startsWith("http"); });
+      var parsed = extractUrls(vehicle.imageUrl);
       urls.push.apply(urls, parsed);
     }
-    return urls.slice(0, MAX_PHOTOS);
+    var unique = [];
+    var seen = {};
+    for (var j = 0; j < urls.length; j++) {
+      if (!seen[urls[j]]) {
+        seen[urls[j]] = true;
+        unique.push(urls[j]);
+      }
+    }
+    return unique.slice(0, MAX_PHOTOS);
   }
 
   async function fillInputFieldStandard(selectors, value, options) {
