@@ -11,25 +11,64 @@ var SITE_PATTERNS = {
 };
 
 var COLUMN_ALIASES = {
-  year: ["year", "yr", "model_year"],
-  make: ["make", "manufacturer", "brand"],
-  model: ["model", "model_name"],
-  trim: ["trim", "trim_level", "series"],
-  vin: ["vin", "vin#", "vin_number"],
-  stockNumber: ["stock", "stock#", "stock_number", "unit"],
-  price: ["price", "selling_price", "list_price", "msrp", "internet_price"],
-  mileage: ["mileage", "miles", "odometer"],
-  exteriorColor: ["color", "exterior_color", "ext_color", "colour"],
-  interiorColor: ["interior", "interior_color", "int_color"],
-  transmission: ["transmission", "trans"],
-  drivetrain: ["drivetrain", "drive_type", "driveline"],
-  fuelType: ["fuel", "fuel_type"],
-  bodyStyle: ["body", "body_style", "body_type", "vehicle_type"],
-  imageUrl: ["image", "image_url", "photo", "photo_url", "picture", "img", "images"],
-  imageUrls: ["photos", "image_urls", "photo_urls"],
-  title: ["title"],
-  description: ["description"],
-  condition: ["condition"]
+  year: ["year", "yr", "model_year", "vehicle_year", "year_model", "modelyear", "veh_year"],
+  make: ["make", "manufacturer", "brand", "vehicle_make", "mfr", "veh_make", "carmake"],
+  model: ["model", "model_name", "vehicle_model", "veh_model", "carmodel"],
+  trim: ["trim", "trim_level", "series", "sub_model", "submodel", "trim_desc", "grade", "edition"],
+  vin: ["vin", "vin#", "vin_number", "vehicle_id", "v.i.n.", "v_i_n", "unit_id", "serial", "serialnumber", "vehicleidentificationnumber"],
+  stockNumber: ["stock", "stock#", "stock_number", "unit", "unit#", "stk", "stk#", "inventory_id", "lot", "lot#", "stock_no", "item_no", "dealer_stock"],
+  price: ["price", "selling_price", "list_price", "msrp", "internet_price", "asking_price", "retail_price", "sale_price", "advertised_price", "web_price", "our_price"],
+  mileage: ["mileage", "miles", "odometer", "odo", "mi", "mileage_out", "odometer_reading", "current_miles"],
+  exteriorColor: ["color", "exterior_color", "ext_color", "colour", "exterior_colour", "ext_colour", "outside_color", "body_color", "paint", "paint_color", "ext"],
+  interiorColor: ["interior", "interior_color", "int_color", "inside_color", "interior_colour", "int", "cabin_color"],
+  transmission: ["transmission", "trans", "transmission_type", "trans_type", "gearbox"],
+  drivetrain: ["drivetrain", "drive_type", "driveline", "drive", "drive_train", "drivewheel", "wheel_drive", "four_wheel_drive"],
+  fuelType: ["fuel", "fuel_type", "fuel_description", "engine_fuel", "fuel_desc"],
+  bodyStyle: ["body", "body_style", "body_type", "vehicle_type", "body_desc", "style", "category"],
+  imageUrl: ["image", "image_url", "photo", "photo_url", "picture", "img", "images", "main_image", "primary_photo", "thumbnail"],
+  imageUrls: ["photos", "image_urls", "photo_urls", "photo_links", "photo_url_list", "picture_urls", "all_photos"],
+  title: ["title", "listing_title", "ad_title"],
+  description: ["description", "comments", "notes", "listing_description", "ad_description", "desc", "vehicle_comments", "dealer_comments"],
+  condition: ["condition", "vehicle_condition", "cond", "quality"]
+};
+
+var VALUE_PATTERNS = {
+  vin: function(vals) {
+    var hits = vals.filter(function(v) { return /^[A-HJ-NPR-Z0-9]{17}$/i.test(v.trim()); });
+    return (hits.length / Math.max(vals.length, 1)) >= 0.6 ? 1 : 0;
+  },
+  year: function(vals) {
+    var hits = vals.filter(function(v) { var n = parseInt(v); return n >= 1900 && n <= 2030; });
+    return hits.length / Math.max(vals.length, 1);
+  },
+  price: function(vals) {
+    var hits = vals.filter(function(v) { return /^\$?[\d,]+(\.\d{0,2})?$/.test(v.trim()) && parseInt(v.replace(/[^0-9]/g,"")) > 100; });
+    return hits.length / Math.max(vals.length, 1);
+  },
+  mileage: function(vals) {
+    var hits = vals.filter(function(v) { var n = parseInt(v.replace(/,/g,"")); return n >= 0 && n <= 999999; });
+    return hits.length / Math.max(vals.length, 1);
+  },
+  imageUrl: function(vals) {
+    var hits = vals.filter(function(v) { return /^https?:\/\//i.test(v.trim()); });
+    return hits.length / Math.max(vals.length, 1);
+  },
+  imageUrls: function(vals) {
+    var hits = vals.filter(function(v) { return /https?:\/\//i.test(v) && (v.match(/https?:\/\//gi) || []).length > 1; });
+    return hits.length / Math.max(vals.length, 1);
+  }
+};
+
+var RANGE_VALIDATORS = {
+  year: function(vals) {
+    return vals.every(function(v) { var n = parseInt(v); return !v || (n >= 1900 && n <= 2030); }) ? 1 : 0;
+  },
+  mileage: function(vals) {
+    return vals.every(function(v) { var n = parseInt(v.replace(/,/g,"")); return !v || (n >= 0 && n <= 999999); }) ? 1 : 0;
+  },
+  price: function(vals) {
+    return vals.every(function(v) { var n = parseInt(v.replace(/[^0-9]/g,"")); return !v || (n >= 0 && n <= 10000000); }) ? 1 : 0;
+  }
 };
 
 function vehicleKey(v) {
@@ -353,23 +392,78 @@ function parseCSV(text) {
   return results;
 }
 
-function autoMapColumns(headers) {
-  var mapping = {};
-  var normalized = headers.map(function (h) { return h.toLowerCase().trim().replace(/[^a-z0-9_#]/g, "_"); });
+function getMappingKey(headers) {
+  return headers.map(function(h) { return h.toLowerCase().trim(); }).sort().join("|");
+}
+
+function loadSavedMapping(headers, callback) {
+  var key = getMappingKey(headers);
+  chrome.storage.local.get("autimik_col_mappings", function(result) {
+    var saved = result.autimik_col_mappings || {};
+    callback(saved[key] || null);
+  });
+}
+
+function saveMappingForSource(headers, mapping) {
+  var key = getMappingKey(headers);
+  chrome.storage.local.get("autimik_col_mappings", function(result) {
+    var saved = result.autimik_col_mappings || {};
+    saved[key] = mapping;
+    var keys = Object.keys(saved);
+    if (keys.length > 50) { delete saved[keys[0]]; }
+    chrome.storage.local.set({ autimik_col_mappings: saved });
+  });
+}
+
+function autoMapColumns(headers, sampleRows) {
+  var normalized = headers.map(function(h) { return h.toLowerCase().trim().replace(/[^a-z0-9_#.]/g, "_"); });
+  var scores = {};
+  var usedCols = {};
 
   for (var field in COLUMN_ALIASES) {
-    var aliases = COLUMN_ALIASES[field];
+    scores[field] = [];
     for (var i = 0; i < normalized.length; i++) {
       var h = normalized[i];
+      var headerScore = 0;
+      var aliases = COLUMN_ALIASES[field];
       for (var j = 0; j < aliases.length; j++) {
-        var alias = aliases[j];
-        var normAlias = alias.replace(/[^a-z0-9_#]/g, "_");
-        if (h === normAlias || h === alias || h.includes(normAlias)) {
-          if (mapping[field] === undefined) {
-            mapping[field] = i;
-          }
-          break;
-        }
+        var alias = aliases[j].replace(/[^a-z0-9_#.]/g, "_");
+        if (h === alias) { headerScore = 1; break; }
+        if (h.includes(alias) || alias.includes(h)) { headerScore = 0.7; break; }
+      }
+
+      var sampleVals = (sampleRows || []).map(function(row) { return (row[i] || "").trim(); }).filter(Boolean).slice(0, 10);
+      var valueScore = 0;
+      if (sampleVals.length > 0 && VALUE_PATTERNS[field]) {
+        valueScore = VALUE_PATTERNS[field](sampleVals);
+      }
+
+      var rangeScore = 0;
+      if (sampleVals.length > 0 && RANGE_VALIDATORS[field]) {
+        rangeScore = RANGE_VALIDATORS[field](sampleVals);
+      } else if (sampleVals.length > 0) {
+        rangeScore = 1;
+      }
+
+      var total = (headerScore * 0.5) + (valueScore * 0.4) + (rangeScore * 0.1);
+      scores[field].push({ col: i, score: total });
+    }
+  }
+
+  var mapping = {};
+  var fieldsByBestScore = Object.keys(scores).map(function(field) {
+    var best = scores[field].reduce(function(a, b) { return b.score > a.score ? b : a; }, { col: -1, score: 0 });
+    return { field: field, col: best.col, score: best.score };
+  });
+  fieldsByBestScore.sort(function(a, b) { return b.score - a.score; });
+
+  for (var k = 0; k < fieldsByBestScore.length; k++) {
+    var entry = fieldsByBestScore[k];
+    if (entry.score >= 0.3 && entry.col >= 0 && !usedCols[entry.col]) {
+      if (entry.field === "imageUrls" && mapping["imageUrl"] && mapping["imageUrl"] === entry.col) continue;
+      mapping[entry.field] = entry.col;
+      if (entry.field !== "imageUrl" && entry.field !== "imageUrls") {
+        usedCols[entry.col] = true;
       }
     }
   }
@@ -391,27 +485,35 @@ function cleanDescription(text) {
     .trim();
 }
 
-function processCSV(text) {
+function processCSV(text, savedMapping) {
   var rows = [];
   var headers = null;
   var mapping = null;
+  var seenVins = {};
+  var seenStocks = {};
+  var ts = Date.now();
 
   var parsed = parseCSV(text);
   for (var r = 0; r < parsed.length; r++) {
     var fields = parsed[r];
     if (!headers) {
       headers = fields;
-      mapping = autoMapColumns(headers);
+      if (savedMapping) {
+        mapping = savedMapping;
+      } else {
+        var sampleRows = parsed.slice(1, 11);
+        mapping = autoMapColumns(headers, sampleRows);
+      }
       continue;
     }
-    var vehicle = { id: "v_" + rows.length + "_" + Date.now() };
+    var vehicle = { id: "v_" + rows.length + "_" + ts };
     for (var field in mapping) {
       var colIdx = mapping[field];
       var val = fields[colIdx] !== undefined ? fields[colIdx].trim() : "";
       if (field === "imageUrls" && val) {
-        vehicle.imageUrls = val.split(/[\s,|;]+/).map(function (u) { return u.trim(); }).filter(function (u) { return u.startsWith("http"); });
+        vehicle.imageUrls = val.split(/[\s,|;]+/).map(function(u) { return u.trim(); }).filter(function(u) { return u.startsWith("http"); });
       } else if (field === "imageUrl" && val) {
-        var urls = val.split(/[\s,|;]+/).map(function (u) { return u.trim(); }).filter(function (u) { return u.startsWith("http"); });
+        var urls = val.split(/[\s,|;]+/).map(function(u) { return u.trim(); }).filter(function(u) { return u.startsWith("http"); });
         if (urls.length > 1) {
           vehicle.imageUrls = (vehicle.imageUrls || []).concat(urls);
         } else {
@@ -423,17 +525,21 @@ function processCSV(text) {
         vehicle[field] = val;
       }
     }
-    if (vehicle.price) {
-      vehicle.price = vehicle.price.replace(/[^0-9.]/g, "");
-    }
-    if (vehicle.mileage) {
-      vehicle.mileage = vehicle.mileage.replace(/[^0-9]/g, "");
-    }
+    if (vehicle.price) vehicle.price = vehicle.price.replace(/[^0-9.]/g, "");
+    if (vehicle.mileage) vehicle.mileage = vehicle.mileage.replace(/[^0-9]/g, "");
+
+    var vinKey = vehicle.vin ? vehicle.vin.toUpperCase().replace(/\s/g, "") : null;
+    var stkKey = vehicle.stockNumber ? vehicle.stockNumber.toLowerCase().trim() : null;
+    if (vinKey && vinKey.length >= 6 && seenVins[vinKey]) continue;
+    if (stkKey && stkKey.length >= 2 && seenStocks[stkKey]) continue;
+    if (vinKey && vinKey.length >= 6) seenVins[vinKey] = true;
+    if (stkKey && stkKey.length >= 2) seenStocks[stkKey] = true;
+
     if (vehicle.make || vehicle.model || vehicle.title) {
       rows.push(vehicle);
     }
   }
-  return rows;
+  return { rows: rows, headers: headers, mapping: mapping };
 }
 
 function getNextUnlisted(currentVehicleId) {
@@ -659,21 +765,33 @@ function handleFile(file) {
   }
   setStatus("Reading CSV...");
   var reader = new FileReader();
-  reader.onload = function (e) {
+  reader.onload = function(e) {
     var text = e.target.result;
-    vehicles = processCSV(text);
-    if (vehicles.length === 0) {
-      showToast("No vehicles found in CSV", "error");
-      setStatus("Ready");
-      return;
-    }
-    chrome.runtime.sendMessage(
-      { type: "SAVE_INVENTORY", payload: { vehicles: vehicles } },
-      function () {
-        showToast(vehicles.length + " vehicles loaded", "success");
-        showInventoryView();
+    var firstLine = text.split(/\r?\n/)[0];
+    var headerFields = firstLine.split(",").map(function(h) { return h.replace(/^"|"$/g, "").trim(); });
+
+    loadSavedMapping(headerFields, function(savedMapping) {
+      var result = processCSV(text, savedMapping);
+      vehicles = result.rows;
+
+      if (vehicles.length === 0) {
+        showToast("No vehicles found in CSV", "error");
+        setStatus("Ready");
+        return;
       }
-    );
+
+      if (!savedMapping && result.headers && result.mapping) {
+        saveMappingForSource(result.headers, result.mapping);
+      }
+
+      chrome.runtime.sendMessage(
+        { type: "SAVE_INVENTORY", payload: { vehicles: vehicles } },
+        function() {
+          showToast(vehicles.length + " vehicles loaded", "success");
+          showInventoryView();
+        }
+      );
+    });
   };
   reader.readAsText(file, "windows-1252");
 }

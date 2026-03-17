@@ -1,0 +1,26 @@
+The "Smart" Part — Automatic Column Mapping
+
+When you upload a CSV, the system analyzes every column using three signals combined into a confidence score:
+
+Header name matching (50% of score) — It compares the column header against a huge library of known variations. For example, a "VIN" field will match headers like v.i.n., vin_number, unit_id, vehicle_id, etc. Different DMS systems name things differently, so this library covers hundreds of variations for each field.
+
+Value pattern matching (40% of score) — It looks at the actual sample data. A column full of 17-character alphanumeric strings gets recognized as VIN even if the header says something unusual. Price columns get detected by dollar amounts, year columns by 4-digit numbers in the 1980–2026 range, etc.
+
+Range/type validation (10% of score) — Sanity checks. A column claiming to be "year" but containing values like 150,000 gets down-ranked.
+
+Handling Inconsistent Formatting
+
+Each field has a normalization function to clean up whatever a DMS throws at it:
+
+Drivetrain values like "FRONT WHEEL DRIVE", "4X4", "all wheel", "AWD" all get normalized to the same internal value
+Image columns can have URLs separated by commas, pipes, semicolons, or spaces — all handled
+Status fields like "lot ready", "in recon", "available" get mapped to the system's internal lifecycle statuses
+Memory for Repeat Imports
+
+If you import from the same DMS source again, it remembers your previous manual mapping corrections. The "CRM Name" you assign to a source gets saved per dealership, so future imports from that DMS auto-apply your saved mappings on top of the automatic detection.
+
+Deduplication on Import
+
+It checks every row against existing vehicles in your dealership by both VIN and stock number. Matches get updated instead of duplicated, and it also catches duplicates within the CSV file itself before they hit the database.
+
+In short: header analysis + data pattern matching does most of the heavy lifting automatically, normalization smooths out the DMS-specific quirks, and saved mappings make repeat imports from the same source even faster. Is there a specific part of this you're thinking about changing or improving?
