@@ -29,7 +29,7 @@ export default function Landing() {
             <a href="#how-it-works" className="text-gray-300 hover:text-white text-sm transition-colors">How It Works</a>
             <Link href="/demo" className="text-gray-300 hover:text-white text-sm transition-colors">Demo</Link>
             <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold px-5 py-2 rounded-lg text-white transition-all hover:brightness-110" style={{ background: "#22c55e" }}>
-              Get Extension
+              Add to Chrome — Free
             </a>
           </div>
           <button
@@ -46,7 +46,7 @@ export default function Landing() {
             <a href="#how-it-works" className="text-gray-300 hover:text-white text-sm py-2" onClick={() => setMobileMenuOpen(false)}>How It Works</a>
             <Link href="/demo" className="text-gray-300 hover:text-white text-sm py-2" onClick={() => setMobileMenuOpen(false)}>Demo</Link>
             <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold px-5 py-2.5 rounded-lg text-white text-center transition-all hover:brightness-110" style={{ background: "#22c55e" }}>
-              Get Extension
+              Add to Chrome — Free
             </a>
           </div>
         )}
@@ -56,25 +56,29 @@ export default function Landing() {
         <DiagonalLinesBackground />
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <img src={logoIcon} alt="Autimik" className="w-32 h-32 mx-auto rounded-2xl mb-8 shadow-2xl shadow-emerald-500/20" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-emerald-500/30 text-emerald-400 text-sm font-medium mb-6" style={{ background: "rgba(34,197,94,0.08)" }}>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+            100% Free — No subscription, no credit card
+          </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
             Auto-list your inventory.{" "}
             <span style={{ color: "#22c55e" }}>Effortlessly.</span>
           </h1>
           <p className="text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Import your dealership CSV and auto-fill Facebook Marketplace vehicle listings in one click — powered by a lightweight Chrome extension.
+            Upload your dealership CSV and Autimik auto-fills Facebook Marketplace vehicle listings in one click. Free Chrome extension. No signup required. Takes 30 seconds to install.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto text-base font-semibold px-8 py-3.5 rounded-xl text-white flex items-center justify-center gap-2 transition-all hover:brightness-110 hover:scale-[1.02]" style={{ background: "#22c55e" }}>
-              Get Chrome Extension <ArrowRight className="w-4 h-4" />
+              Add to Chrome — It's Free <ArrowRight className="w-4 h-4" />
             </a>
             <Link href="/demo" className="w-full sm:w-auto text-base font-semibold px-8 py-3.5 rounded-xl text-white border border-white/20 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 transition-all">
               See Demo
             </Link>
           </div>
-          <div className="mt-6">
-            <Link href="/demo" className="text-sm font-medium transition-colors hover:text-white" style={{ color: "#60a5fa" }}>
-              See it in action &rarr;
-            </Link>
+          <div className="mt-6 flex items-center justify-center gap-6 text-sm text-gray-400">
+            <span>✓ Free forever</span>
+            <span>✓ No account needed</span>
+            <span>✓ Install in 30 seconds</span>
           </div>
         </div>
       </section>
@@ -130,7 +134,7 @@ export default function Landing() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { step: 1, icon: Download, title: "Export CSV", desc: "Pull your inventory from DealerSocket, VinSolutions, vAuto, CDK, or any DMS." },
-              { step: 2, icon: Upload, title: "Install Extension", desc: "Add Autimik from the Chrome Web Store in seconds." },
+              { step: 2, icon: Upload, title: "Install Free", desc: "Add Autimik from the Chrome Web Store in seconds — completely free, no account required." },
               { step: 3, icon: FileSpreadsheet, title: "Upload CSV", desc: "Drop your inventory file into the Autimik popup." },
               { step: 4, icon: Zap, title: "List", desc: "Click \"List It\" and watch the Facebook form fill automatically." },
             ].map(({ step, icon: Icon, title, desc }) => (
@@ -152,10 +156,12 @@ export default function Landing() {
       <section className="px-4 py-16 sm:py-20">
         <div className="max-w-3xl mx-auto text-center rounded-2xl p-10 sm:p-14 border border-white/10" style={{ background: "#111827" }}>
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Ready to list faster?</h2>
-          <p className="text-gray-300 mb-8 text-lg">A 60-car lot goes from 5 hours to 30 minutes. Add Autimik to Chrome and start today.</p>
+          <p className="text-gray-300 mb-2 text-lg">A 60-car lot goes from 5 hours to 30 minutes.</p>
+          <p className="text-emerald-400 font-semibold mb-8 text-lg">Free to install. Easy to use. No signup needed.</p>
           <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="inline-flex text-base font-semibold px-10 py-3.5 rounded-xl text-white items-center justify-center gap-2 mx-auto transition-all hover:brightness-110 hover:scale-[1.02]" style={{ background: "#22c55e" }}>
-            Get Chrome Extension <ArrowRight className="w-4 h-4" />
+            Add to Chrome — It's Free <ArrowRight className="w-4 h-4" />
           </a>
+          <p className="mt-4 text-sm text-gray-500">Works with any DMS · Facebook Marketplace · Chrome</p>
         </div>
       </section>
 
