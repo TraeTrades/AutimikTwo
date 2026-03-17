@@ -376,6 +376,21 @@ function autoMapColumns(headers) {
   return mapping;
 }
 
+function cleanDescription(text) {
+  if (!text) return "";
+  return text
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function processCSV(text) {
   var rows = [];
   var headers = null;
@@ -402,6 +417,8 @@ function processCSV(text) {
         } else {
           vehicle[field] = val;
         }
+      } else if (field === "description" && val) {
+        vehicle[field] = cleanDescription(val);
       } else {
         vehicle[field] = val;
       }
@@ -658,7 +675,7 @@ function handleFile(file) {
       }
     );
   };
-  reader.readAsText(file);
+  reader.readAsText(file, "windows-1252");
 }
 
 dropZone.addEventListener("click", function () { fileInput.click(); });
