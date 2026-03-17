@@ -1,30 +1,203 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Play } from "lucide-react";
 import ExtensionPopup from "@/components/extension-popup";
 import FBFormMock, { type FBFormMockHandle } from "@/components/fb-form-mock";
 import type { DemoVehicle } from "@/lib/demo-vehicles";
 import logoSmall from "@assets/autimik-icon-48_1773364287680.png";
 
+const CHROME_STORE_URL =
+  "https://chromewebstore.google.com/detail/autimik-multi-site-smart/peogianhcokkhikndoceajchphgnjohe";
+
+const D = {
+  bg: "#18191a",
+  nav: "#242526",
+  panel: "#242526",
+  field: "#3a3b3c",
+  text: "#e4e6eb",
+  muted: "#b0b3b8",
+  label: "#8a8d91",
+  blue: "#1877f2",
+  divider: "#3e4042",
+  green: "#42b72a",
+};
+
+function FBNavBar({ onTogglePopup, popupOpen }: { onTogglePopup: () => void; popupOpen: boolean }) {
+  return (
+    <div style={{
+      height: 56, background: D.nav, borderBottom: `1px solid ${D.divider}`,
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "0 12px", flexShrink: 0, zIndex: 50, position: "relative",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <rect width="36" height="36" rx="8" fill={D.blue} />
+          <path d="M22 10h-2.7c-1.9 0-3.2 1.2-3.2 3.2V16H14v3.5h2.1V28h3.6v-8.5h2.6l.5-3.5h-3.1v-2.2c0-.9.5-1.4 1.5-1.4H22V10z" fill="#fff"/>
+        </svg>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, background: D.field,
+          borderRadius: 20, padding: "6px 12px",
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={D.muted}><path d="M21 21l-4.35-4.35M16.65 16.65A7.5 7.5 0 1 0 4.93 4.93a7.5 7.5 0 0 0 11.72 11.72z" stroke={D.muted} strokeWidth="2" strokeLinecap="round" fill="none"/></svg>
+          <span style={{ fontSize: 13, color: D.muted }}>Search Facebook</span>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 4 }}>
+        {["🏠", "👥", "📺", "🛒", "🎮"].map((icon, i) => (
+          <div key={i} style={{
+            width: 44, height: 44, borderRadius: 8, display: "flex", alignItems: "center",
+            justifyContent: "center", fontSize: 18, cursor: "default",
+            background: i === 3 ? "rgba(24,119,242,0.12)" : "transparent",
+            borderBottom: i === 3 ? `3px solid ${D.blue}` : "3px solid transparent",
+          }}>{icon}</div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {[
+          <svg key="m" width="20" height="20" viewBox="0 0 24 24" fill={D.text}><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>,
+          <svg key="b" width="20" height="20" viewBox="0 0 24 24" fill={D.text}><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5S10.5 3.17 10.5 4v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>,
+        ].map((icon, i) => (
+          <div key={i} style={{
+            width: 36, height: 36, borderRadius: "50%", background: D.field,
+            display: "flex", alignItems: "center", justifyContent: "center", cursor: "default",
+          }}>{icon}</div>
+        ))}
+        <div style={{ width: 36, height: 36, borderRadius: "50%", background: D.blue, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", flexShrink: 0 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+        </div>
+
+        <div style={{ width: 1, height: 28, background: D.divider, margin: "0 4px" }} />
+
+        <button
+          onClick={onTogglePopup}
+          title="Autimik Extension"
+          style={{
+            width: 36, height: 36, borderRadius: "50%", border: `2px solid ${popupOpen ? D.blue : "transparent"}`,
+            background: popupOpen ? "rgba(24,119,242,0.15)" : D.field,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", padding: 0, transition: "all 0.15s",
+          }}
+        >
+          <img src={logoSmall} alt="Autimik" style={{ width: 22, height: 22, borderRadius: 4 }} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ListingPreviewCard({ vehicle }: { vehicle: Partial<DemoVehicle> & { filled: boolean } }) {
+  const title = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(" ");
+  const price = vehicle.price ? `$${Number(vehicle.price).toLocaleString()}` : null;
+  const mileage = vehicle.mileage ? `${Number(vehicle.mileage).toLocaleString()} mi` : null;
+  const trans = vehicle.transmission ? (vehicle.transmission.toLowerCase().includes("auto") ? "Automatic transmission" : vehicle.transmission) : null;
+
+  return (
+    <div style={{
+      width: 280, background: D.panel, flexShrink: 0,
+      borderLeft: `1px solid ${D.divider}`, overflowY: "auto", display: "flex", flexDirection: "column",
+    }}>
+      <div style={{ padding: "12px 14px 8px", borderBottom: `1px solid ${D.divider}` }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: D.text, marginBottom: 2 }}>
+          {title || "Title"}
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: D.text }}>{price || "Price"}</div>
+        <div style={{ fontSize: 11, color: D.muted, marginTop: 3 }}>Listed a few seconds ago in Your Location</div>
+      </div>
+
+      {(trans || mileage || vehicle.condition) && (
+        <div style={{ padding: "10px 14px", borderBottom: `1px solid ${D.divider}` }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: D.text, marginBottom: 6 }}>About this vehicle</div>
+          {trans && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill={D.muted}><circle cx="12" cy="12" r="10" stroke={D.muted} strokeWidth="2" fill="none"/><path d="M12 6v6l4 2" stroke={D.muted} strokeWidth="2" strokeLinecap="round"/></svg>
+              <span style={{ fontSize: 12, color: D.text }}>{trans}</span>
+            </div>
+          )}
+          {mileage && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 4v6l3 3" stroke={D.muted} strokeWidth="2" strokeLinecap="round"/></svg>
+              <span style={{ fontSize: 12, color: D.text }}>{mileage}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {vehicle.description && (
+        <div style={{ padding: "10px 14px", borderBottom: `1px solid ${D.divider}` }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: D.text, marginBottom: 4 }}>Seller's description</div>
+          <div style={{ fontSize: 12, color: D.muted, lineHeight: 1.5, maxHeight: 80, overflow: "hidden" }}>
+            {vehicle.description}
+          </div>
+          <div style={{ marginTop: 8, height: 80, background: D.field, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 11, color: D.label }}>📍 Location map</span>
+          </div>
+          <div style={{ marginTop: 6, fontSize: 11, color: D.muted }}>Location is approximate</div>
+        </div>
+      )}
+
+      <div style={{ padding: "10px 14px", borderBottom: `1px solid ${D.divider}` }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: D.text }}>Seller information</span>
+          <span style={{ fontSize: 12, color: D.blue, cursor: "default" }}>Seller details</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 32, height: 32, borderRadius: "50%", background: D.blue, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 600, color: D.text }}>Demo User</span>
+        </div>
+      </div>
+
+      {!vehicle.filled && (
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+          <div>
+            <div style={{ fontSize: 18, marginBottom: 8 }}>🚗</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: D.text, marginBottom: 4 }}>Your listing preview</div>
+            <div style={{ fontSize: 12, color: D.muted, lineHeight: 1.5 }}>
+              As you create your listing, you can preview how it will appear to others on Marketplace.
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ padding: "10px 14px", borderTop: `1px solid ${D.divider}`, marginTop: "auto" }}>
+        <button style={{
+          width: "100%", padding: "9px 0", background: D.field, border: "none",
+          borderRadius: 8, fontSize: 14, fontWeight: 600, color: D.text, cursor: "default",
+        }}>Message</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Demo() {
   const [listedIds, setListedIds] = useState<Set<string>>(new Set());
   const [isFilling, setIsFilling] = useState(false);
+  const [popupOpen, setPopupOpen] = useState(true);
+  const [currentVehicle, setCurrentVehicle] = useState<Partial<DemoVehicle> & { filled: boolean }>({ filled: false });
   const formRef = useRef<FBFormMockHandle>(null);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
-    document.body.style.background = "#0a0f1e";
-    return () => { document.body.style.background = ""; };
+    const orig = document.body.style.background;
+    document.body.style.background = D.bg;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.background = orig;
+      document.body.style.overflow = "";
+    };
   }, []);
-
-  const cancelledRef = useRef(false);
 
   const handleListVehicle = async (vehicle: DemoVehicle) => {
     if (!formRef.current || isFilling) return;
     cancelledRef.current = false;
     setIsFilling(true);
+    setCurrentVehicle({ ...vehicle, filled: false });
     await formRef.current.fillWithVehicle(vehicle);
     if (!cancelledRef.current) {
       setListedIds((prev) => new Set(prev).add(vehicle.id));
+      setCurrentVehicle({ ...vehicle, filled: true });
     }
     setIsFilling(false);
   };
@@ -34,44 +207,83 @@ export default function Demo() {
     formRef.current?.reset();
     setListedIds(new Set());
     setIsFilling(false);
+    setCurrentVehicle({ filled: false });
   };
 
   return (
-    <div className="min-h-screen" style={{ background: "#0a0f1e" }}>
-      <nav className="border-b border-white/10 sticky top-0 z-50 backdrop-blur-md" style={{ background: "rgba(10,15,30,0.92)" }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3">
-              <img src={logoSmall} alt="Autimik" className="w-8 h-8 rounded-lg" />
-              <span className="text-white text-lg font-bold tracking-tight">Autimik</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-gray-400 hover:text-white text-sm flex items-center gap-1 transition-colors">
-              <ArrowLeft className="w-4 h-4" /> Back
-            </Link>
-            <a href="https://chromewebstore.google.com/detail/autimik-multi-site-smart/peogianhcokkhikndoceajchphgnjohe" target="_blank" rel="noopener noreferrer" className="text-sm font-semibold px-4 py-1.5 rounded-lg text-white transition-all hover:brightness-110" style={{ background: "#22c55e" }}>
-              Add to Chrome — Free
-            </a>
-          </div>
-        </div>
-      </nav>
+    <div style={{
+      height: "100vh", display: "flex", flexDirection: "column",
+      background: D.bg, fontFamily: '"Segoe UI Historic","Segoe UI",Roboto,Helvetica,Arial,sans-serif',
+      overflow: "hidden",
+    }}>
+      <style>{`
+        .fb-demo-scroll::-webkit-scrollbar { width: 4px; }
+        .fb-demo-scroll::-webkit-scrollbar-thumb { background: #4e4f50; border-radius: 2px; }
+      `}</style>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4 border border-emerald-500/30" style={{ background: "rgba(34,197,94,0.1)", color: "#22c55e" }}>
-            <Play className="w-3 h-3" /> Interactive Demo
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">See how it works</h1>
-          <p className="text-gray-400 text-base sm:text-lg max-w-xl mx-auto">
-            Click "Try with demo data" in the extension panel, then hit "List It" on any vehicle. Watch the Facebook form fill in automatically.
-          </p>
+      <FBNavBar onTogglePopup={() => setPopupOpen((o) => !o)} popupOpen={popupOpen} />
+
+      <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
+        <div style={{
+          width: 230, flexShrink: 0, background: D.panel,
+          borderRight: `1px solid ${D.divider}`, display: "flex", flexDirection: "column",
+          overflow: "hidden",
+        }}>
+          <FBFormMock ref={formRef} onReset={handleResetAll} />
         </div>
 
-        <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-12">
-          <div className="w-full lg:w-auto flex flex-col items-center">
-            <div className="mb-3 text-xs font-semibold tracking-wider uppercase" style={{ color: "#60a5fa" }}>
-              Chrome Extension
+        <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
+          <div style={{
+            flex: 1, background: "#1c1c1c", display: "flex", alignItems: "center",
+            justifyContent: "center", position: "relative", overflow: "hidden",
+          }}>
+            {currentVehicle.make ? (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 72, marginBottom: 12 }}>🚗</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: D.text }}>
+                  {[currentVehicle.year, currentVehicle.make, currentVehicle.model].filter(Boolean).join(" ")}
+                </div>
+                {currentVehicle.exteriorColor && (
+                  <div style={{ fontSize: 12, color: D.muted, marginTop: 4 }}>{currentVehicle.exteriorColor}</div>
+                )}
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: 32 }}>
+                <div style={{
+                  width: 80, height: 80, borderRadius: "50%", background: D.field,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  margin: "0 auto 16px", fontSize: 32,
+                }}>📷</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: D.muted }}>Your vehicle photo</div>
+                <div style={{ fontSize: 12, color: D.label, marginTop: 6 }}>will appear here</div>
+              </div>
+            )}
+
+            <div style={{
+              position: "absolute", top: 8, left: 8,
+              background: "rgba(36,37,38,0.7)", borderRadius: 6,
+              padding: "4px 10px", fontSize: 11, fontWeight: 700, color: D.muted,
+              backdropFilter: "blur(4px)",
+            }}>Preview</div>
+          </div>
+
+          <ListingPreviewCard vehicle={currentVehicle} />
+        </div>
+
+        {popupOpen && (
+          <div style={{
+            position: "absolute", top: 10, right: 290, zIndex: 40,
+            filter: "drop-shadow(0 8px 32px rgba(0,0,0,0.6))",
+          }}>
+            <div style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+              <img src={logoSmall} alt="Autimik" style={{ width: 18, height: 18, borderRadius: 4 }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", letterSpacing: "0.03em" }}>
+                AUTIMIK EXTENSION
+              </span>
+              <button
+                onClick={() => setPopupOpen(false)}
+                style={{ background: "none", border: "none", color: D.muted, cursor: "pointer", fontSize: 14, padding: "0 4px", marginLeft: "auto" }}
+              >×</button>
             </div>
             <ExtensionPopup
               onListVehicle={handleListVehicle}
@@ -79,42 +291,37 @@ export default function Demo() {
               isFilling={isFilling}
             />
           </div>
+        )}
 
-          <div className="hidden lg:flex items-center self-center">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-16 h-px" style={{ background: "linear-gradient(90deg, transparent, #22c55e, transparent)" }} />
-              <span className="text-xs font-semibold" style={{ color: "#22c55e" }}>auto-fills</span>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ color: "#22c55e" }}>
-                <path d="M5 12h14m-4-4 4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
+        {!popupOpen && (
+          <div style={{ position: "absolute", top: 10, right: 10, zIndex: 40 }}>
+            <button
+              onClick={() => setPopupOpen(true)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "6px 12px",
+                background: "#22c55e", border: "none", borderRadius: 8,
+                fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer",
+              }}
+            >
+              <img src={logoSmall} alt="" style={{ width: 16, height: 16, borderRadius: 3 }} />
+              Open Autimik
+            </button>
           </div>
+        )}
+      </div>
 
-          <div className="lg:hidden flex justify-center w-full py-2">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-px" style={{ background: "linear-gradient(180deg, transparent, #22c55e, transparent)" }} />
-              <span className="text-xs font-semibold" style={{ color: "#22c55e" }}>auto-fills ↓</span>
-              <div className="h-8 w-px" style={{ background: "linear-gradient(180deg, transparent, #22c55e, transparent)" }} />
-            </div>
-          </div>
-
-          <div className="w-full lg:w-auto flex flex-col items-center">
-            <div className="mb-3 text-xs font-semibold tracking-wider uppercase" style={{ color: "#1877f2" }}>
-              Facebook Marketplace
-            </div>
-            <FBFormMock ref={formRef} onReset={handleResetAll} />
-          </div>
-        </div>
-
-        <div className="text-center mt-10">
-          <button
-            onClick={handleResetAll}
-            className="text-sm px-6 py-2 rounded-lg border transition-colors"
-            style={{ borderColor: "#374151", color: "#9ca3af", background: "transparent" }}
-          >
-            Reset Demo
-          </button>
-        </div>
+      <div style={{
+        height: 36, background: D.nav, borderTop: `1px solid ${D.divider}`,
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 20, flexShrink: 0,
+      }}>
+        <span style={{ fontSize: 11, color: D.label }}>
+          Demo only — not connected to real Facebook
+        </span>
+        <Link href="/" style={{ fontSize: 11, color: D.blue, textDecoration: "none" }}>← Back to landing</Link>
+        <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer"
+          style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", textDecoration: "none" }}>
+          Get the real extension →
+        </a>
       </div>
     </div>
   );
