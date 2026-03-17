@@ -1,0 +1,18 @@
+Perfect. Now I have everything needed to fix this. Here's exactly what Facebook changed:
+Old approach: [aria-label="Year"] — targeted the input directly
+New structure: The <label> itself IS the combobox (role="combobox"), identified by aria-labelledby pointing to a <span> with the visible text. No aria-label on any field anymore.
+New selector strategy: Find the <span> with the field name text, get its id, then find the label[aria-labelledby="that-id"].
+Let me rewrite the Facebook adapter selector logic in content.js:Read full fill-engine to understand dropdown implementationRead full fill-engine to understand dropdown implementationNow I have everything. The fix requires two things:
+
+A new findByLabelText() function in fill-engine.js that locates FB's <label role="combobox"> and <input> fields by finding the <span> with matching text and using its id with aria-labelledby
+Updated selectors in content.js's Facebook adapter to use this new approach
+Add findByLabelText helper that finds FB fields by visible label textAdd findByLabelText helper that finds FB fields by visible label textNow update waitFor to delegate to resolveElement when fb-label selectors are present, and update fillDropdownField to handle the case where the trigger IS the <label> element itself:Make waitFor use resolveElement so fb-label selectors work everywhereMake waitFor use resolveElement so fb-label selectors work everywhereNow update the Facebook adapter selectors in content.js to use fb-label: prefixed selectors:Ran 2 commandsRan 2 commandsNow I'll replace all the Facebook adapter selectors with fb-label: variants:Replace Facebook adapter selectors with fb-label approachReplace Facebook adapter selectors with fb-label approachNow also expose findByLabelText in the FillEngine return object, and verify the files look right:Export findByLabelText and resolveElement from FillEngineExport findByLabelText and resolveElement from FillEngineNow copy the updated files to outputs:Ran a command, read a fileRan a command, read a fileHere's exactly what changed and why:
+Root cause: Facebook stopped putting aria-label attributes on their form fields. Every field now has a <span id="_r_xx_">Label Text</span> and the interactive element (the <label role="combobox"> for dropdowns, or the <input>) carries aria-labelledby="_r_xx_" instead. Those _r_xx_ IDs are random and regenerate on every page load.
+The fix — two changes:
+fill-engine.js — Added two new functions:
+
+findByLabelText(text) — searches all <span id> elements for matching visible text, then finds the associated interactive element via aria-labelledby or by walking up to the parent <label>
+resolveElement() — a smarter version of waitFor that understands "fb-label:Year" style selector strings as a trigger to use text-based lookup instead of CSS
+
+content.js — Updated all Facebook adapter selectors to lead with "fb-label:Vehicle type", "fb-label:Year", etc., with the old aria-label selectors kept as fallbacks. So if Facebook ever puts aria-labels back, it still works.
+To deploy: Replace fill-engine.js and content.js in your extension/ folder, then go to chrome://extensions, hit the reload button on Autimik, and test.
