@@ -668,7 +668,7 @@ var FillEngine = (function () {
 
         if (opts.length === 0) {
           log("No options appeared for typeahead", label, "attempt", attempt);
-          if (attempt < 4) { await sleep(400); continue; }
+          if (attempt < 3) { await sleep(400); continue; }
           return { field: label, status: "failed", error: "No options appeared" };
         }
 
@@ -688,10 +688,10 @@ var FillEngine = (function () {
           return { field: label, status: "filled", value: value };
         }
         log("No matching typeahead option for", label, ":", value, "- options were:", opts.slice(0,5).map(function(o){return o.textContent.trim();}));
-        if (attempt === 4) return { field: label, status: "failed", error: "No matching option" };
+        if (attempt === 3) return { field: label, status: "failed", error: "No matching option" };
         await sleep(400);
       } catch (e) {
-        if (attempt === 4) return { field: label, status: "failed", error: e.message };
+        if (attempt === 3) return { field: label, status: "failed", error: e.message };
         await sleep(500);
       }
     }
