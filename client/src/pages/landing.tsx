@@ -5,7 +5,7 @@ import logoIcon from "@assets/autimik-icon-128_1773364287681.png";
 import logoSmall from "@assets/autimik-icon-48_1773364287680.png";
 import DiagonalLinesBackground from "@/components/diagonal-lines-background";
 
-const CHROME_STORE_URL = "https://chromewebstore.google.com/detail/autimik/YOUR_EXTENSION_ID";
+const CHROME_STORE_URL = "https://chromewebstore.google.com/detail/autimik-multi-site-smart/peogianhcokkhikndoceajchphgnjohe";
 
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
