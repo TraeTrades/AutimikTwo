@@ -303,7 +303,7 @@ var FillEngine = (function () {
       var trigger = await waitFor(selectors, timeout);
       log("Opening dropdown:", label);
       trigger.click();
-      await waitFor('[role="option"]', 2500).catch(function () {});
+      await waitFor('[role="option"]', 4000).catch(function () {});
 
       var normalizedValue = String(resolvedValue).toLowerCase().trim();
       var optionSelectors = document.querySelectorAll('[role="option"], [role="listbox"] [role="option"]');
@@ -628,10 +628,22 @@ var FillEngine = (function () {
         // If it's a combobox label (not an input), click it to open/focus
         if (el.tagName === "LABEL" || el.getAttribute("role") === "combobox") {
           el.click();
-          await sleep(200);
-          // Try to find the actual input inside
-          var inner = el.querySelector("input") || el.parentElement && el.parentElement.querySelector("input");
-          if (inner) el = inner;
+          // Wait longer so FB's portal overlay has time to render the search input
+          await sleep(350);
+          // Tier 1: FB auto-focuses the search input when the overlay opens
+          var inner = (document.activeElement && document.activeElement.tagName === "INPUT")
+            ? document.activeElement : null;
+          // Tier 2: Broad DOM search — FB renders the input in a portal at the document root
+          if (!inner) {
+            inner = document.querySelector(
+              'input[aria-autocomplete="list"], [role="combobox"] input[type="text"], [role="searchbox"], input[aria-autocomplete="both"]'
+            );
+          }
+          // Tier 3: Original narrow search as last resort
+          if (!inner) {
+            inner = el.querySelector("input") || (el.parentElement && el.parentElement.querySelector("input"));
+          }
+          if (inner && inner.tagName === "INPUT") el = inner;
         }
 
         el.focus();

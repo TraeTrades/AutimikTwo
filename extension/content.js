@@ -103,7 +103,7 @@ var ADAPTERS = {
         "default": "Good"
       },
       "fuelType": {
-        "selector": ["fb-label:Fuel type", "[aria-label=\"Fuel type\"]", "[aria-label*=\"Fuel type\"]"],
+        "selector": ["fb-label:Fuel type", "fb-label:Fuel Type", "[aria-label=\"Fuel type\"]", "[aria-label=\"Fuel Type\"]", "[aria-label*=\"Fuel type\"]", "[aria-label*=\"Fuel Type\"]"],
         "type": "dropdown",
         "valueMap": {
           "gas": "gasoline",
