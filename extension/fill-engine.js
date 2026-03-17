@@ -15,8 +15,12 @@ var FillEngine = (function () {
   }
 
   function waitFor(selectors, timeout) {
-    timeout = timeout || 8000;
     var selectorList = Array.isArray(selectors) ? selectors : [selectors];
+    // If any fb-label selectors are present, use resolveElement
+    var hasFbLabel = selectorList.some(function (s) { return s.startsWith("fb-label:"); });
+    if (hasFbLabel) return resolveElement(selectorList, timeout || 8000);
+
+    timeout = timeout || 8000;
     return new Promise(function (resolve, reject) {
       for (var i = 0; i < selectorList.length; i++) {
         var el = document.querySelector(selectorList[i]);
@@ -70,6 +74,83 @@ var FillEngine = (function () {
 
     element.dispatchEvent(new Event("input", { bubbles: true }));
     element.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  // Facebook no longer uses aria-label on form fields.
+  // Instead each field has a <span id="_r_xx_">Label Text</span> and the
+  // interactive element (label[role="combobox"] or input) carries
+  // aria-labelledby="_r_xx_".  This helper finds the element that way.
+  function findByLabelText(labelText) {
+    var spans = document.querySelectorAll("span[id]");
+    for (var i = 0; i < spans.length; i++) {
+      var span = spans[i];
+      if (span.textContent.trim() === labelText) {
+        var id = span.id;
+        // Look for aria-labelledby match (dropdowns)
+        var el = document.querySelector('[aria-labelledby="' + id + '"]');
+        if (el) return el;
+        // Look for input/textarea inside the same label container
+        var container = span.closest("label");
+        if (container) {
+          var input = container.querySelector("input, textarea");
+          if (input) return input;
+        }
+      }
+    }
+    return null;
+  }
+
+  // Selector variant that tries aria-label first, then falls back to label-text search.
+  // Use "fb-label:Label Text" as a selector string to trigger the fallback.
+  function resolveElement(selectorList, timeout) {
+    timeout = timeout || 8000;
+    return new Promise(function (resolve, reject) {
+      // Separate fb-label directives from real CSS selectors
+      var fbLabels = [];
+      var cssSelectors = [];
+      selectorList.forEach(function (s) {
+        if (s.startsWith("fb-label:")) {
+          fbLabels.push(s.slice("fb-label:".length));
+        } else {
+          cssSelectors.push(s);
+        }
+      });
+
+      function tryFind() {
+        // Try CSS selectors first
+        for (var i = 0; i < cssSelectors.length; i++) {
+          var el = document.querySelector(cssSelectors[i]);
+          if (el) return el;
+        }
+        // Try fb-label text search
+        for (var j = 0; j < fbLabels.length; j++) {
+          var el2 = findByLabelText(fbLabels[j]);
+          if (el2) return el2;
+        }
+        return null;
+      }
+
+      var found = tryFind();
+      if (found) {
+        log("Found element immediately:", selectorList[0]);
+        return resolve(found);
+      }
+
+      var observer = new MutationObserver(function () {
+        var el = tryFind();
+        if (el) {
+          log("Found element via observer");
+          observer.disconnect();
+          clearTimeout(timer);
+          resolve(el);
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      var timer = setTimeout(function () {
+        observer.disconnect();
+        reject(new Error("Timeout waiting for: " + selectorList.join(" | ")));
+      }, timeout);
+    });
   }
 
   function resolveValueMap(value, valueMap) {
@@ -546,6 +627,8 @@ var FillEngine = (function () {
     sleep: sleep,
     normalizeForVerify: normalizeForVerify,
     waitFor: waitFor,
+    findByLabelText: findByLabelText,
+    resolveElement: resolveElement,
     setNativeValue: setNativeValue,
     resolveValueMap: resolveValueMap,
     fillInputField: fillInputField,

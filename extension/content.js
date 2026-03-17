@@ -19,7 +19,7 @@ var ADAPTERS = {
     "optionalFields": ["bodyStyle", "exteriorColor", "interiorColor", "condition", "fuelType", "transmission", "description"],
     "fields": {
       "vehicleType": {
-        "selector": ["[aria-label=\"Vehicle type\"]", "[aria-label*=\"Vehicle type\"]"],
+        "selector": ["fb-label:Vehicle type", "[aria-label=\"Vehicle type\"]", "[aria-label*=\"Vehicle type\"]"],
         "type": "dropdown",
         "default": "cars/trucks",
         "valueMap": {
@@ -35,27 +35,27 @@ var ADAPTERS = {
         }
       },
       "year": {
-        "selector": ["[aria-label=\"Year\"]", "[aria-label*=\"Year\"]"],
+        "selector": ["fb-label:Year", "[aria-label=\"Year\"]", "[aria-label*=\"Year\"]"],
         "type": "dropdown"
       },
       "make": {
-        "selector": ["[aria-label=\"Make\"]", "[aria-label*=\"Make\"]"],
+        "selector": ["fb-label:Make", "[aria-label=\"Make\"]", "[aria-label*=\"Make\"]"],
         "type": "dropdown"
       },
       "model": {
-        "selector": ["input[aria-label=\"Model\"]", "input[placeholder*=\"Model\"]"],
+        "selector": ["fb-label:Model", "input[aria-label=\"Model\"]", "input[placeholder*=\"Model\"]"],
         "type": "input"
       },
       "mileage": {
-        "selector": ["input[aria-label=\"Mileage\"]", "input[placeholder*=\"Mileage\"]", "input[placeholder*=\"miles\"]"],
+        "selector": ["fb-label:Mileage", "input[aria-label=\"Mileage\"]", "input[placeholder*=\"Mileage\"]", "input[placeholder*=\"miles\"]"],
         "type": "input"
       },
       "price": {
-        "selector": ["input[aria-label=\"Price\"]", "input[placeholder*=\"Price\"]", "input[name*=\"price\"]"],
+        "selector": ["fb-label:Price", "input[aria-label=\"Price\"]", "input[placeholder*=\"Price\"]", "input[name*=\"price\"]"],
         "type": "input"
       },
       "bodyStyle": {
-        "selector": ["[aria-label=\"Body style\"]", "[aria-label*=\"Body style\"]"],
+        "selector": ["fb-label:Body style", "[aria-label=\"Body style\"]", "[aria-label*=\"Body style\"]"],
         "type": "dropdown",
         "valueMap": {
           "suv": "suv",
@@ -74,15 +74,15 @@ var ADAPTERS = {
         }
       },
       "exteriorColor": {
-        "selector": ["[aria-label=\"Exterior color\"]", "[aria-label*=\"Exterior color\"]"],
+        "selector": ["fb-label:Exterior color", "[aria-label=\"Exterior color\"]", "[aria-label*=\"Exterior color\"]"],
         "type": "dropdown"
       },
       "interiorColor": {
-        "selector": ["[aria-label=\"Interior color\"]", "[aria-label*=\"Interior color\"]"],
+        "selector": ["fb-label:Interior color", "[aria-label=\"Interior color\"]", "[aria-label*=\"Interior color\"]"],
         "type": "dropdown"
       },
       "condition": {
-        "selector": ["[aria-label=\"Vehicle condition\"]", "[aria-label*=\"Vehicle condition\"]", "[aria-label=\"Condition\"]", "[aria-label*=\"Condition\"]"],
+        "selector": ["fb-label:Vehicle condition", "fb-label:Condition", "[aria-label=\"Vehicle condition\"]", "[aria-label*=\"Vehicle condition\"]", "[aria-label=\"Condition\"]"],
         "type": "dropdown",
         "valueMap": {
           "new": "new",
@@ -96,7 +96,7 @@ var ADAPTERS = {
         "default": "used - good"
       },
       "fuelType": {
-        "selector": ["[aria-label=\"Fuel type\"]", "[aria-label*=\"Fuel type\"]"],
+        "selector": ["fb-label:Fuel type", "[aria-label=\"Fuel type\"]", "[aria-label*=\"Fuel type\"]"],
         "type": "dropdown",
         "valueMap": {
           "gas": "gasoline",
@@ -114,7 +114,7 @@ var ADAPTERS = {
         }
       },
       "transmission": {
-        "selector": ["[aria-label=\"Transmission\"]", "[aria-label*=\"Transmission\"]"],
+        "selector": ["fb-label:Transmission", "[aria-label=\"Transmission\"]", "[aria-label*=\"Transmission\"]"],
         "type": "dropdown",
         "valueMap": {
           "auto": "automatic transmission",
@@ -127,9 +127,9 @@ var ADAPTERS = {
       },
       "description": {
         "selector": [
+          "fb-label:Description",
           "textarea[aria-label=\"Description\"]",
           "[aria-label*=\"Description\"]",
-          "[data-testid*=\"description\"]",
           "div[role=\"textbox\"][aria-label*=\"escription\"]",
           "div[contenteditable=\"true\"]",
           "textarea"
