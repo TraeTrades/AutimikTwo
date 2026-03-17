@@ -620,45 +620,74 @@ var FillEngine = (function () {
     var label = options.label || "typeahead";
     if (!value) return { field: label, status: "skipped" };
 
-    for (var attempt = 1; attempt <= 3; attempt++) {
+    for (var attempt = 1; attempt <= 4; attempt++) {
       try {
         var el = await waitFor(selectors, options.timeout || 8000);
         el.scrollIntoView({ block: "center", behavior: "instant" });
+        await sleep(100);
         el.focus();
         el.click();
-        await sleep(150);
+        await sleep(200);
 
-        // Clear any existing value then type the search term
+        // Clear existing value then type the search term char by char
         el.dispatchEvent(new KeyboardEvent("keydown", { key: "a", code: "KeyA", ctrlKey: true, bubbles: true }));
         document.execCommand("selectAll", false, null);
-        await sleep(30);
+        await sleep(50);
         await typeCharByChar(el, String(value));
-        await sleep(600); // wait for FB to filter the list
 
-        // Now find the matching option
+        // Block until options actually appear in the DOM (up to 4s) — do not move on until they do
+        var optAppeared = await waitFor('[role="option"]', 4000).catch(function() { return null; });
+        if (!optAppeared) {
+          log("Typeahead options never appeared for", label, "— attempt", attempt);
+          document.body.click();
+          await sleep(400);
+          continue;
+        }
+        // Give a short extra settle for the full filtered list to finish rendering
+        await sleep(250);
+
         var normalizedValue = String(value).toLowerCase().trim();
+        var firstWord = normalizedValue.split(" ")[0];
         var opts = document.querySelectorAll('[role="option"]');
         var matched = false;
+
+        // Pass 1 — exact or starts-with match
         for (var i = 0; i < opts.length; i++) {
           var text = (opts[i].textContent || "").toLowerCase().trim();
           if (text === normalizedValue || text.startsWith(normalizedValue)) {
             log("Selecting typeahead option:", opts[i].textContent);
+            opts[i].scrollIntoView({ block: "nearest" });
             opts[i].click();
             matched = true;
             break;
           }
         }
+
+        // Pass 2 — contains or first-word match (handles multi-word makes like "Land Rover")
+        if (!matched) {
+          for (var j = 0; j < opts.length; j++) {
+            var t = (opts[j].textContent || "").toLowerCase().trim();
+            if (t.includes(normalizedValue) || (firstWord.length >= 3 && t.startsWith(firstWord))) {
+              log("Selecting typeahead option (partial):", opts[j].textContent);
+              opts[j].scrollIntoView({ block: "nearest" });
+              opts[j].click();
+              matched = true;
+              break;
+            }
+          }
+        }
+
         if (matched) {
-          await sleep(300);
+          await sleep(400);
           return { field: label, status: "filled", value: value };
         }
-        if (attempt === 3) {
-          log("No typeahead option found for", label, ":", value);
-          return { field: label, status: "failed", error: "No matching option" };
-        }
-        await sleep(400);
+
+        log("No typeahead option matched for", label, ":", value, "| options visible:", opts.length);
+        document.body.click();
+        await sleep(300);
+
       } catch (e) {
-        if (attempt === 3) return { field: label, status: "failed", error: e.message };
+        if (attempt === 4) return { field: label, status: "failed", error: e.message };
         await sleep(500);
       }
     }

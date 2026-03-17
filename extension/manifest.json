@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Autimik - Auto Lister",
-  "version": "3.12.0",
+  "version": "3.13.0",
   "description": "Auto-fill vehicle listings on Facebook Marketplace. Upload your inventory CSV and list in one click.",
   "permissions": ["storage", "activeTab", "scripting", "tabs", "windows", "permissions"],
   "host_permissions": ["https://www.facebook.com/*", "https://*.craigslist.org/*", "https://offerup.com/*", "https://www.offerup.com/*"],
