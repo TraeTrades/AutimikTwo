@@ -340,7 +340,7 @@ export default function Landing() {
                   text: "Unzip the file",
                   detail: (
                     <span>
-                      Use any archive tool. When prompted for a password enter{" "}
+                      Use any archive tool. When prompted for a password{" "}
                       <code className="text-gray-200 font-mono bg-white/5 px-1.5 py-0.5 rounded text-xs">email Sales@lecdealerapps.com</code>.
                     </span>
                   ),
