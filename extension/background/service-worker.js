@@ -179,6 +179,55 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
       return true;
     }
 
+    case "START_TRAINING": {
+      ensureContentScript(payload.tabId).then(function () {
+        chrome.scripting.executeScript({ target: { tabId: payload.tabId }, files: ["trainer.js"] })
+          .then(function () {
+            chrome.tabs.sendMessage(payload.tabId, { type: "START_TRAINING" }, function () {
+              sendResponse({ success: true });
+            });
+          })
+          .catch(function (err) { sendResponse({ success: false, error: err.message }); });
+      });
+      return true;
+    }
+
+    case "STOP_TRAINING": {
+      chrome.tabs.sendMessage(payload.tabId, { type: "STOP_TRAINING" }, function () {
+        sendResponse({ success: true });
+      });
+      return true;
+    }
+
+    case "SAVE_ADAPTER": {
+      chrome.storage.local.get("autimik_custom_adapters", function (result) {
+        var adapters = result.autimik_custom_adapters || {};
+        adapters[payload.hostname] = payload.adapter;
+        chrome.storage.local.set({ autimik_custom_adapters: adapters }, function () {
+          sendResponse({ success: true });
+        });
+      });
+      return true;
+    }
+
+    case "GET_CUSTOM_ADAPTERS": {
+      chrome.storage.local.get("autimik_custom_adapters", function (result) {
+        sendResponse({ success: true, adapters: result.autimik_custom_adapters || {} });
+      });
+      return true;
+    }
+
+    case "DELETE_CUSTOM_ADAPTER": {
+      chrome.storage.local.get("autimik_custom_adapters", function (result) {
+        var adapters = result.autimik_custom_adapters || {};
+        delete adapters[payload.hostname];
+        chrome.storage.local.set({ autimik_custom_adapters: adapters }, function () {
+          sendResponse({ success: true });
+        });
+      });
+      return true;
+    }
+
     case "FETCH_IMAGE": {
       var url = payload.url;
       fetch(url)

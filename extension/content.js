@@ -357,7 +357,18 @@ function reportStatus(step, detail) {
   } catch (e) { /* popup may be closed */ }
 }
 
-function findAdapter(url) {
+function getCustomAdapter(url) {
+  return new Promise(function (resolve) {
+    var hostname;
+    try { hostname = new URL(url).hostname; } catch (e) { return resolve(null); }
+    chrome.storage.local.get("autimik_custom_adapters", function (result) {
+      var adapters = result.autimik_custom_adapters || {};
+      resolve(adapters[hostname] || null);
+    });
+  });
+}
+
+async function findAdapter(url) {
   for (var id in ADAPTERS) {
     var adapter = ADAPTERS[id];
     for (var i = 0; i < adapter.match.length; i++) {
@@ -369,6 +380,11 @@ function findAdapter(url) {
         return adapter;
       }
     }
+  }
+  var custom = await getCustomAdapter(url);
+  if (custom) {
+    log("Matched custom trained adapter:", custom.name);
+    return custom;
   }
   log("No adapter matched for:", url);
   return null;
@@ -560,7 +576,7 @@ async function fillWithAI(vehicle) {
 async function fillForm(vehicle) {
   log("Starting form fill for:", vehicle.year, vehicle.make, vehicle.model);
 
-  var adapter = findAdapter(window.location.href);
+  var adapter = await findAdapter(window.location.href);
   var summary;
 
   if (adapter) {
@@ -590,6 +606,11 @@ async function fillForm(vehicle) {
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
   if (message.type === "PING") {
     sendResponse({ alive: true });
+    return;
+  }
+
+  if (message.type === "START_TRAINING" || message.type === "STOP_TRAINING") {
+    // Forwarded to trainer.js via its own listener — nothing to do here
     return;
   }
 

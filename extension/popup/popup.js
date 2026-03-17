@@ -52,6 +52,8 @@ var searchInput = document.getElementById("searchInput");
 var statusBar = document.getElementById("statusBar");
 var btnClear = document.getElementById("btnClear");
 var btnAuto = document.getElementById("btnAuto");
+var btnTrain = document.getElementById("btnTrain");
+var trainedAdaptersList = document.getElementById("trainedAdaptersList");
 var dropZone = document.getElementById("dropZone");
 var fileInput = document.getElementById("fileInput");
 var toast = document.getElementById("toast");
@@ -70,6 +72,8 @@ var btnRetry = document.getElementById("btnRetry");
 var btnDismiss = document.getElementById("btnDismiss");
 
 var monitorWindowId = null;
+var trainingActive = false;
+var trainingTabId = null;
 
 function openMonitorWindow(vehicleLabel) {
   var url = chrome.runtime.getURL("popup/monitor.html") +
@@ -500,6 +504,7 @@ function showUploadView() {
   siteSelectorDiv.classList.add("hidden");
   btnClear.classList.add("hidden");
   btnAuto.classList.add("hidden");
+  btnTrain.classList.add("hidden");
   setStatus("Ready");
 }
 
@@ -509,7 +514,42 @@ function showInventoryView() {
   siteSelectorDiv.classList.remove("hidden");
   btnClear.classList.remove("hidden");
   btnAuto.classList.remove("hidden");
+  btnTrain.classList.remove("hidden");
   renderVehicles(searchInput.value);
+}
+
+function loadTrainedAdapters() {
+  chrome.runtime.sendMessage({ type: "GET_CUSTOM_ADAPTERS" }, function (response) {
+    if (!response || !response.adapters) return;
+    var adapters = response.adapters;
+    var hostnames = Object.keys(adapters);
+    if (hostnames.length === 0) {
+      trainedAdaptersList.textContent = "None saved.";
+      return;
+    }
+    trainedAdaptersList.innerHTML = "";
+    hostnames.forEach(function (hostname) {
+      var row = document.createElement("div");
+      row.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:3px 0;";
+      var label = document.createElement("span");
+      label.textContent = hostname;
+      label.style.color = "#a78bfa";
+      var del = document.createElement("button");
+      del.textContent = "Delete";
+      del.style.cssText = "background:transparent;border:1px solid #374151;color:#9ca3af;padding:2px 7px;border-radius:3px;font-size:10px;cursor:pointer;";
+      del.addEventListener("mouseover", function () { del.style.borderColor = "#ef4444"; del.style.color = "#ef4444"; });
+      del.addEventListener("mouseout", function () { del.style.borderColor = "#374151"; del.style.color = "#9ca3af"; });
+      del.addEventListener("click", function () {
+        chrome.runtime.sendMessage({ type: "DELETE_CUSTOM_ADAPTER", payload: { hostname: hostname } }, function () {
+          showToast("Adapter deleted", "success");
+          loadTrainedAdapters();
+        });
+      });
+      row.appendChild(label);
+      row.appendChild(del);
+      trainedAdaptersList.appendChild(row);
+    });
+  });
 }
 
 function handleFile(file) {
@@ -599,7 +639,54 @@ btnSettings.addEventListener("click", function () {
         apiKeyInput.value = response.apiKey;
       }
     });
+    loadTrainedAdapters();
   }
+});
+
+btnTrain.addEventListener("click", function () {
+  if (trainingActive) {
+    // Stop training
+    trainingActive = false;
+    btnTrain.classList.remove("active");
+    btnTrain.textContent = "Train";
+    if (trainingTabId !== null) {
+      chrome.runtime.sendMessage({ type: "STOP_TRAINING", payload: { tabId: trainingTabId } });
+    }
+    setStatus("Training stopped");
+    return;
+  }
+
+  // Start training — get current tab and request host permission
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    if (!tabs[0]) { showToast("No active tab found", "error"); return; }
+    var tab = tabs[0];
+    var tabUrl = tab.url || "";
+    if (!tabUrl.startsWith("https://")) {
+      showToast("Navigate to an HTTPS listing page first", "error");
+      return;
+    }
+    var origin = tabUrl.replace(/(https:\/\/[^/]+).*/, "$1") + "/*";
+    chrome.permissions.request({ origins: [origin] }, function (granted) {
+      if (!granted) { showToast("Permission required to train this site", "error"); return; }
+      trainingTabId = tab.id;
+      trainingActive = true;
+      btnTrain.classList.add("active");
+      btnTrain.textContent = "Stop";
+      setStatus("Training mode active — click fields on the page");
+      chrome.runtime.sendMessage(
+        { type: "START_TRAINING", payload: { tabId: tab.id } },
+        function (response) {
+          if (chrome.runtime.lastError || (response && !response.success)) {
+            trainingActive = false;
+            btnTrain.classList.remove("active");
+            btnTrain.textContent = "Train";
+            showToast("Could not start training. Refresh the page and try again.", "error");
+            setStatus("Ready");
+          }
+        }
+      );
+    });
+  });
 });
 
 btnSaveKey.addEventListener("click", function () {
@@ -630,6 +717,15 @@ chrome.runtime.onMessage.addListener(function (message) {
     var step = message.payload.step || "";
     var detail = message.payload.detail || "";
     setStatus(step + (detail ? " " + detail : ""));
+  }
+  if (message.type === "TRAINING_COMPLETE" && message.payload) {
+    trainingActive = false;
+    trainingTabId = null;
+    btnTrain.classList.remove("active");
+    btnTrain.textContent = "Train";
+    showToast("Adapter saved for " + message.payload.hostname + "!", "success");
+    setStatus("Ready");
+    loadTrainedAdapters();
   }
 });
 
