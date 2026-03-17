@@ -5,17 +5,17 @@
   "match": ["*://www.facebook.com/marketplace/create/vehicle*"],
   "strategy": "react_controlled",
   "timing": {
-    "afterField": 500,
-    "afterDropdown": 400,
-    "afterDescription": 200,
-    "afterPhotos": 1500,
-    "settle": 1500,
-    "phaseSettle": 2000,
-    "vehicleTypeSettle": 2500
+    "afterField": 200,
+    "afterDropdown": 250,
+    "afterDescription": 100,
+    "afterPhotos": 800,
+    "settle": 800,
+    "phaseSettle": 800,
+    "vehicleTypeSettle": 1200
   },
   "initFields": ["vehicleType"],
   "requiredFields": ["year", "make", "model", "mileage", "price"],
-  "optionalFields": ["bodyStyle", "exteriorColor", "interiorColor", "condition", "fuelType", "transmission", "description"],
+  "optionalFields": ["bodyStyle", "exteriorColor", "interiorColor", "condition", "fuelType", "transmission", "cleanTitle", "description"],
   "fields": {
     "vehicleType": {
       "selector": ["fb-label:Vehicle type", "[aria-label=\"Vehicle type\"]", "[aria-label*=\"Vehicle type\"]"],
@@ -130,6 +130,11 @@
         "mt": "manual transmission",
         "cvt": "cvt transmission"
       }
+    },
+    "cleanTitle": {
+      "selector": ["fb-label:This vehicle has a clean title", "input[type=\"checkbox\"]"],
+      "type": "checkbox",
+      "default": true
     },
     "description": {
       "selector": [
