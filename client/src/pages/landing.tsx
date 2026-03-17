@@ -171,7 +171,13 @@ export default function Landing() {
             <img src={logoSmall} alt="Autimik" className="w-6 h-6 rounded" />
             <span className="text-gray-400 text-sm">Autimik</span>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
+            <p className="text-gray-500 text-sm">
+              A project and application by{" "}
+              <a href="https://LECdealerapps.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors underline underline-offset-2">
+                LECdealerapps
+              </a>
+            </p>
             <Link href="/privacy" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Privacy Policy</Link>
             <p className="text-gray-400 text-sm">&copy; {new Date().getFullYear()} Autimik. All rights reserved.</p>
           </div>
