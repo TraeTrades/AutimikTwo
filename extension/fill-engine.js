@@ -620,72 +620,64 @@ var FillEngine = (function () {
     var label = options.label || "typeahead";
     if (!value) return { field: label, status: "skipped" };
 
-    for (var attempt = 1; attempt <= 4; attempt++) {
+    for (var attempt = 1; attempt <= 3; attempt++) {
       try {
         var el = await waitFor(selectors, options.timeout || 8000);
         el.scrollIntoView({ block: "center", behavior: "instant" });
-        await sleep(100);
+
+        // If it's a combobox label (not an input), click it to open/focus
+        if (el.tagName === "LABEL" || el.getAttribute("role") === "combobox") {
+          el.click();
+          await sleep(200);
+          // Try to find the actual input inside
+          var inner = el.querySelector("input") || el.parentElement && el.parentElement.querySelector("input");
+          if (inner) el = inner;
+        }
+
         el.focus();
         el.click();
-        await sleep(200);
+        await sleep(100);
 
-        // Clear existing value then type the search term char by char
+        // Clear existing value
         el.dispatchEvent(new KeyboardEvent("keydown", { key: "a", code: "KeyA", ctrlKey: true, bubbles: true }));
         document.execCommand("selectAll", false, null);
-        await sleep(50);
+        await sleep(30);
+
+        // Type the search term
         await typeCharByChar(el, String(value));
 
-        // Block until options actually appear in the DOM (up to 4s) — do not move on until they do
-        var optAppeared = await waitFor('[role="option"]', 4000).catch(function() { return null; });
-        if (!optAppeared) {
-          log("Typeahead options never appeared for", label, "— attempt", attempt);
-          document.body.click();
-          await sleep(400);
-          continue;
+        // Wait for options to appear (up to 4s) instead of fixed sleep
+        var opts = [];
+        for (var w = 0; w < 40; w++) {
+          await sleep(100);
+          opts = Array.from(document.querySelectorAll('[role="option"]'));
+          if (opts.length > 0) break;
         }
-        // Give a short extra settle for the full filtered list to finish rendering
-        await sleep(250);
+
+        if (opts.length === 0) {
+          log("No options appeared for typeahead", label, "attempt", attempt);
+          if (attempt < 4) { await sleep(400); continue; }
+          return { field: label, status: "failed", error: "No options appeared" };
+        }
 
         var normalizedValue = String(value).toLowerCase().trim();
-        var firstWord = normalizedValue.split(" ")[0];
-        var opts = document.querySelectorAll('[role="option"]');
         var matched = false;
-
-        // Pass 1 — exact or starts-with match
         for (var i = 0; i < opts.length; i++) {
           var text = (opts[i].textContent || "").toLowerCase().trim();
           if (text === normalizedValue || text.startsWith(normalizedValue)) {
             log("Selecting typeahead option:", opts[i].textContent);
-            opts[i].scrollIntoView({ block: "nearest" });
             opts[i].click();
             matched = true;
             break;
           }
         }
-
-        // Pass 2 — contains or first-word match (handles multi-word makes like "Land Rover")
-        if (!matched) {
-          for (var j = 0; j < opts.length; j++) {
-            var t = (opts[j].textContent || "").toLowerCase().trim();
-            if (t.includes(normalizedValue) || (firstWord.length >= 3 && t.startsWith(firstWord))) {
-              log("Selecting typeahead option (partial):", opts[j].textContent);
-              opts[j].scrollIntoView({ block: "nearest" });
-              opts[j].click();
-              matched = true;
-              break;
-            }
-          }
-        }
-
         if (matched) {
-          await sleep(400);
+          await sleep(300);
           return { field: label, status: "filled", value: value };
         }
-
-        log("No typeahead option matched for", label, ":", value, "| options visible:", opts.length);
-        document.body.click();
-        await sleep(300);
-
+        log("No matching typeahead option for", label, ":", value, "- options were:", opts.slice(0,5).map(function(o){return o.textContent.trim();}));
+        if (attempt === 4) return { field: label, status: "failed", error: "No matching option" };
+        await sleep(400);
       } catch (e) {
         if (attempt === 4) return { field: label, status: "failed", error: e.message };
         await sleep(500);
