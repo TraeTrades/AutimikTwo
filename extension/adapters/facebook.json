@@ -20,17 +20,18 @@
     "vehicleType": {
       "selector": ["fb-label:Vehicle type", "[aria-label=\"Vehicle type\"]", "[aria-label*=\"Vehicle type\"]"],
       "type": "dropdown",
-      "default": "cars/trucks",
+      "default": "Car/Truck",
       "valueMap": {
-        "car": "cars/trucks",
-        "truck": "cars/trucks",
-        "car/truck": "cars/trucks",
-        "cars/trucks": "cars/trucks",
-        "motorcycle": "motorcycles",
-        "boat": "boats",
-        "rv": "rvs/campers",
-        "camper": "rvs/campers",
-        "powersport": "powersports"
+        "car": "Car/Truck",
+        "truck": "Car/Truck",
+        "car/truck": "Car/Truck",
+        "cars/trucks": "Car/Truck",
+        "cars & trucks": "Car/Truck",
+        "motorcycle": "Motorcycle",
+        "boat": "Boat",
+        "rv": "RV/Camper",
+        "camper": "RV/Camper",
+        "powersport": "Powersport"
       }
     },
     "year": {
@@ -39,7 +40,7 @@
     },
     "make": {
       "selector": ["fb-label:Make", "[aria-label=\"Make\"]", "[aria-label*=\"Make\"]"],
-      "type": "dropdown"
+      "type": "typeahead"
     },
     "model": {
       "selector": ["fb-label:Model", "input[aria-label=\"Model\"]", "input[placeholder*=\"Model\"]"],
