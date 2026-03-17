@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from "react";
 import type { DemoVehicle } from "@/lib/demo-vehicles";
 
 export interface FBFormMockHandle {
@@ -8,9 +8,10 @@ export interface FBFormMockHandle {
 
 interface FBFormMockProps {
   onReset?: () => void;
+  onValuesChange?: (values: FieldValues) => void;
 }
 
-interface FieldValues {
+export interface FieldValues {
   vehicleType: string;
   location: string;
   year: string;
@@ -143,8 +144,13 @@ function FBField({ label, value, active, isDropdown, isTextarea, isCheckbox, pre
   );
 }
 
-const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset }, ref) => {
+const FBFormMock = forwardRef<FBFormMockHandle, FBFormMockProps>(({ onReset, onValuesChange }, ref) => {
   const [values, setValues] = useState<FieldValues>(EMPTY);
+
+  useEffect(() => {
+    onValuesChange?.(values);
+  }, [values, onValuesChange]);
+
   const [activeField, setActiveField] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [success, setSuccess] = useState(false);

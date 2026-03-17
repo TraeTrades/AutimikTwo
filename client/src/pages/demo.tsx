@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import ExtensionPopup from "@/components/extension-popup";
-import FBFormMock, { type FBFormMockHandle } from "@/components/fb-form-mock";
+import FBFormMock, { type FBFormMockHandle, type FieldValues } from "@/components/fb-form-mock";
 import type { DemoVehicle } from "@/lib/demo-vehicles";
 import logoSmall from "@assets/autimik-icon-48_1773364287680.png";
 
@@ -21,6 +21,12 @@ const D = {
   green: "#42b72a",
 };
 
+const EMPTY_VALUES: FieldValues = {
+  vehicleType: "", location: "", year: "", make: "", model: "",
+  mileage: "", price: "", bodyStyle: "", exteriorColor: "", interiorColor: "",
+  cleanTitle: false, condition: "", fuelType: "", transmission: "", description: "",
+};
+
 function FBNavBar({ onTogglePopup, popupOpen }: { onTogglePopup: () => void; popupOpen: boolean }) {
   return (
     <div style={{
@@ -37,44 +43,68 @@ function FBNavBar({ onTogglePopup, popupOpen }: { onTogglePopup: () => void; pop
           display: "flex", alignItems: "center", gap: 8, background: D.field,
           borderRadius: 20, padding: "6px 12px",
         }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill={D.muted}><path d="M21 21l-4.35-4.35M16.65 16.65A7.5 7.5 0 1 0 4.93 4.93a7.5 7.5 0 0 0 11.72 11.72z" stroke={D.muted} strokeWidth="2" strokeLinecap="round" fill="none"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke={D.muted} strokeWidth="2"/><path d="m21 21-4.35-4.35" stroke={D.muted} strokeWidth="2" strokeLinecap="round"/></svg>
           <span style={{ fontSize: 13, color: D.muted }}>Search Facebook</span>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 4 }}>
-        {["🏠", "👥", "📺", "🛒", "🎮"].map((icon, i) => (
-          <div key={i} style={{
-            width: 44, height: 44, borderRadius: 8, display: "flex", alignItems: "center",
-            justifyContent: "center", fontSize: 18, cursor: "default",
-            background: i === 3 ? "rgba(24,119,242,0.12)" : "transparent",
-            borderBottom: i === 3 ? `3px solid ${D.blue}` : "3px solid transparent",
-          }}>{icon}</div>
-        ))}
+      <div style={{ display: "flex", gap: 2 }}>
+        {[
+          { label: "Home", icon: <path d="M3 12l9-9 9 9M5 10v9a1 1 0 0 0 1 1h4v-5h4v5h4a1 1 0 0 0 1-1v-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/> },
+          { label: "Friends", icon: <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/> },
+          { label: "Watch", icon: <><rect x="2" y="7" width="20" height="15" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/><polyline points="17 2 12 7 7 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></> },
+          { label: "Marketplace", icon: <><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/><line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/></> },
+          { label: "Gaming", icon: <><rect x="2" y="6" width="20" height="12" rx="4" stroke="currentColor" strokeWidth="2" fill="none"/><line x1="6" y1="12" x2="10" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="8" y1="10" x2="8" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="16" cy="10" r="1" fill="currentColor"/><circle cx="18" cy="13" r="1" fill="currentColor"/></> },
+        ].map(({ label, icon }, i) => {
+          const active = i === 3;
+          return (
+            <div key={label} style={{
+              width: 96, height: 48, display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: 2, cursor: "default",
+              color: active ? D.blue : D.muted,
+              borderBottom: active ? `3px solid ${D.blue}` : "3px solid transparent",
+              borderRadius: active ? 0 : 8,
+              fontSize: 10, fontWeight: 600, transition: "color 0.1s",
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24">{icon}</svg>
+              <span style={{ display: active ? "block" : "none" }}>{label}</span>
+            </div>
+          );
+        })}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6, background: D.field,
+          borderRadius: 20, padding: "6px 14px", cursor: "default",
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={D.text}><line x1="12" y1="5" x2="12" y2="19" stroke={D.text} strokeWidth="2" strokeLinecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke={D.text} strokeWidth="2" strokeLinecap="round"/></svg>
+          <span style={{ fontSize: 13, fontWeight: 600, color: D.text }}>Create</span>
+        </div>
+
         {[
-          <svg key="m" width="20" height="20" viewBox="0 0 24 24" fill={D.text}><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>,
-          <svg key="b" width="20" height="20" viewBox="0 0 24 24" fill={D.text}><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5S10.5 3.17 10.5 4v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>,
+          <svg key="msg" width="20" height="20" viewBox="0 0 24 24" fill={D.text}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke={D.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>,
+          <svg key="bell" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" stroke={D.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
         ].map((icon, i) => (
           <div key={i} style={{
             width: 36, height: 36, borderRadius: "50%", background: D.field,
             display: "flex", alignItems: "center", justifyContent: "center", cursor: "default",
           }}>{icon}</div>
         ))}
-        <div style={{ width: 36, height: 36, borderRadius: "50%", background: D.blue, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", flexShrink: 0 }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+
+        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#1da1f2", display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", flexShrink: 0 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
         </div>
 
-        <div style={{ width: 1, height: 28, background: D.divider, margin: "0 4px" }} />
+        <div style={{ width: 1, height: 28, background: D.divider }} />
 
         <button
           onClick={onTogglePopup}
           title="Autimik Extension"
           style={{
-            width: 36, height: 36, borderRadius: "50%", border: `2px solid ${popupOpen ? D.blue : "transparent"}`,
-            background: popupOpen ? "rgba(24,119,242,0.15)" : D.field,
+            width: 36, height: 36, borderRadius: "50%",
+            border: `2px solid ${popupOpen ? D.blue : "transparent"}`,
+            background: popupOpen ? "rgba(24,119,242,0.18)" : D.field,
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer", padding: 0, transition: "all 0.15s",
           }}
@@ -86,85 +116,112 @@ function FBNavBar({ onTogglePopup, popupOpen }: { onTogglePopup: () => void; pop
   );
 }
 
-function ListingPreviewCard({ vehicle }: { vehicle: Partial<DemoVehicle> & { filled: boolean } }) {
-  const title = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(" ");
-  const price = vehicle.price ? `$${Number(vehicle.price).toLocaleString()}` : null;
-  const mileage = vehicle.mileage ? `${Number(vehicle.mileage).toLocaleString()} mi` : null;
-  const trans = vehicle.transmission ? (vehicle.transmission.toLowerCase().includes("auto") ? "Automatic transmission" : vehicle.transmission) : null;
+function ListingPreviewCard({ values }: { values: FieldValues }) {
+  const title = [values.year, values.make, values.model].filter(Boolean).join(" ");
+  const price = values.price ? `$${values.price}` : null;
+  const mileage = values.mileage ? `${values.mileage} mi` : null;
+  const trans = values.transmission || null;
+  const location = values.location || "Your location";
+  const anyFilled = !!(values.year || values.make || values.price);
 
   return (
     <div style={{
-      width: 280, background: D.panel, flexShrink: 0,
-      borderLeft: `1px solid ${D.divider}`, overflowY: "auto", display: "flex", flexDirection: "column",
+      width: 300, background: D.panel, flexShrink: 0,
+      borderLeft: `1px solid ${D.divider}`, display: "flex", flexDirection: "column",
+      overflowY: "auto",
     }}>
-      <div style={{ padding: "12px 14px 8px", borderBottom: `1px solid ${D.divider}` }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: D.text, marginBottom: 2 }}>
+      <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${D.divider}` }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: anyFilled ? D.text : D.label, marginBottom: 2, minHeight: 20 }}>
           {title || "Title"}
         </div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: D.text }}>{price || "Price"}</div>
-        <div style={{ fontSize: 11, color: D.muted, marginTop: 3 }}>Listed a few seconds ago in Your Location</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: anyFilled ? D.text : D.label, minHeight: 28 }}>
+          {price || "Price"}
+        </div>
+        <div style={{ fontSize: 11, color: D.muted, marginTop: 4 }}>
+          Listed a few seconds ago in {location}
+        </div>
       </div>
 
-      {(trans || mileage || vehicle.condition) && (
-        <div style={{ padding: "10px 14px", borderBottom: `1px solid ${D.divider}` }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: D.text, marginBottom: 6 }}>About this vehicle</div>
+      {(trans || mileage || values.condition || values.bodyStyle) && (
+        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${D.divider}` }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: D.text, marginBottom: 8 }}>About this vehicle</div>
           {trans && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill={D.muted}><circle cx="12" cy="12" r="10" stroke={D.muted} strokeWidth="2" fill="none"/><path d="M12 6v6l4 2" stroke={D.muted} strokeWidth="2" strokeLinecap="round"/></svg>
-              <span style={{ fontSize: 12, color: D.text }}>{trans}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke={D.muted} strokeWidth="2"/><path d="M12 6v6l4 2" stroke={D.muted} strokeWidth="2" strokeLinecap="round"/></svg>
+              <span style={{ fontSize: 13, color: D.text }}>{trans}</span>
             </div>
           )}
           {mileage && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 4v6l3 3" stroke={D.muted} strokeWidth="2" strokeLinecap="round"/></svg>
-              <span style={{ fontSize: 12, color: D.text }}>{mileage}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke={D.muted} strokeWidth="2"/><path d="M12 7v5l3 3" stroke={D.muted} strokeWidth="2" strokeLinecap="round"/></svg>
+              <span style={{ fontSize: 13, color: D.text }}>{mileage}</span>
+            </div>
+          )}
+          {values.condition && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke={D.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <span style={{ fontSize: 13, color: D.text }}>{values.condition}</span>
+            </div>
+          )}
+          {values.bodyStyle && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="1" y="9" width="22" height="9" rx="2" stroke={D.muted} strokeWidth="2"/><path d="M5 9V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2" stroke={D.muted} strokeWidth="2"/><circle cx="7" cy="18" r="2" fill={D.muted}/><circle cx="17" cy="18" r="2" fill={D.muted}/></svg>
+              <span style={{ fontSize: 13, color: D.text }}>{values.bodyStyle}</span>
             </div>
           )}
         </div>
       )}
 
-      {vehicle.description && (
-        <div style={{ padding: "10px 14px", borderBottom: `1px solid ${D.divider}` }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: D.text, marginBottom: 4 }}>Seller's description</div>
-          <div style={{ fontSize: 12, color: D.muted, lineHeight: 1.5, maxHeight: 80, overflow: "hidden" }}>
-            {vehicle.description}
+      {values.description && (
+        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${D.divider}` }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: D.text, marginBottom: 6 }}>Seller's description</div>
+          <div style={{ fontSize: 12, color: D.muted, lineHeight: 1.55, maxHeight: 88, overflow: "hidden" }}>
+            {values.description}
           </div>
-          <div style={{ marginTop: 8, height: 80, background: D.field, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: 11, color: D.label }}>📍 Location map</span>
+          <div style={{
+            marginTop: 10, height: 90, borderRadius: 8, overflow: "hidden",
+            background: "linear-gradient(135deg, #2d4a6b 0%, #1a3a52 40%, #2d4a6b 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center", position: "relative",
+          }}>
+            <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 30% 50%, rgba(255,255,255,0.05) 1px, transparent 1px), radial-gradient(circle at 70% 30%, rgba(255,255,255,0.05) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.5 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke="#fff" strokeWidth="2"/><circle cx="12" cy="10" r="3" stroke="#fff" strokeWidth="2"/></svg>
           </div>
-          <div style={{ marginTop: 6, fontSize: 11, color: D.muted }}>Location is approximate</div>
+          <div style={{ marginTop: 6, fontSize: 11, color: D.label }}>{location} · Location is approximate</div>
         </div>
       )}
 
-      <div style={{ padding: "10px 14px", borderBottom: `1px solid ${D.divider}` }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: D.text }}>Seller information</span>
+      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${D.divider}` }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: D.text }}>Seller information</span>
           <span style={{ fontSize: 12, color: D.blue, cursor: "default" }}>Seller details</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: "50%", background: D.blue, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#1da1f2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
-          <span style={{ fontSize: 13, fontWeight: 600, color: D.text }}>Demo User</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: D.text }}>Demo User</div>
+            <div style={{ fontSize: 11, color: D.muted }}>Marketplace seller</div>
+          </div>
         </div>
       </div>
 
-      {!vehicle.filled && (
+      {!anyFilled && (
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
           <div>
-            <div style={{ fontSize: 18, marginBottom: 8 }}>🚗</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: D.text, marginBottom: 4 }}>Your listing preview</div>
-            <div style={{ fontSize: 12, color: D.muted, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🚗</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: D.text, marginBottom: 6 }}>Your listing preview</div>
+            <div style={{ fontSize: 12, color: D.muted, lineHeight: 1.6 }}>
               As you create your listing, you can preview how it will appear to others on Marketplace.
             </div>
           </div>
         </div>
       )}
 
-      <div style={{ padding: "10px 14px", borderTop: `1px solid ${D.divider}`, marginTop: "auto" }}>
+      <div style={{ padding: "12px 16px", marginTop: "auto", borderTop: `1px solid ${D.divider}` }}>
         <button style={{
-          width: "100%", padding: "9px 0", background: D.field, border: "none",
-          borderRadius: 8, fontSize: 14, fontWeight: 600, color: D.text, cursor: "default",
+          width: "100%", padding: "10px 0", background: D.field, border: "none",
+          borderRadius: 8, fontSize: 14, fontWeight: 600, color: D.muted, cursor: "default",
         }}>Message</button>
       </div>
     </div>
@@ -175,7 +232,7 @@ export default function Demo() {
   const [listedIds, setListedIds] = useState<Set<string>>(new Set());
   const [isFilling, setIsFilling] = useState(false);
   const [popupOpen, setPopupOpen] = useState(true);
-  const [currentVehicle, setCurrentVehicle] = useState<Partial<DemoVehicle> & { filled: boolean }>({ filled: false });
+  const [liveValues, setLiveValues] = useState<FieldValues>(EMPTY_VALUES);
   const formRef = useRef<FBFormMockHandle>(null);
   const cancelledRef = useRef(false);
 
@@ -189,15 +246,17 @@ export default function Demo() {
     };
   }, []);
 
+  const handleValuesChange = useCallback((vals: FieldValues) => {
+    setLiveValues(vals);
+  }, []);
+
   const handleListVehicle = async (vehicle: DemoVehicle) => {
     if (!formRef.current || isFilling) return;
     cancelledRef.current = false;
     setIsFilling(true);
-    setCurrentVehicle({ ...vehicle, filled: false });
     await formRef.current.fillWithVehicle(vehicle);
     if (!cancelledRef.current) {
       setListedIds((prev) => new Set(prev).add(vehicle.id));
-      setCurrentVehicle({ ...vehicle, filled: true });
     }
     setIsFilling(false);
   };
@@ -207,8 +266,10 @@ export default function Demo() {
     formRef.current?.reset();
     setListedIds(new Set());
     setIsFilling(false);
-    setCurrentVehicle({ filled: false });
+    setLiveValues(EMPTY_VALUES);
   };
+
+  const anyFilled = !!(liveValues.year || liveValues.make || liveValues.price);
 
   return (
     <div style={{
@@ -216,20 +277,15 @@ export default function Demo() {
       background: D.bg, fontFamily: '"Segoe UI Historic","Segoe UI",Roboto,Helvetica,Arial,sans-serif',
       overflow: "hidden",
     }}>
-      <style>{`
-        .fb-demo-scroll::-webkit-scrollbar { width: 4px; }
-        .fb-demo-scroll::-webkit-scrollbar-thumb { background: #4e4f50; border-radius: 2px; }
-      `}</style>
-
       <FBNavBar onTogglePopup={() => setPopupOpen((o) => !o)} popupOpen={popupOpen} />
 
       <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
         <div style={{
-          width: 230, flexShrink: 0, background: D.panel,
+          width: 240, flexShrink: 0, background: D.panel,
           borderRight: `1px solid ${D.divider}`, display: "flex", flexDirection: "column",
           overflow: "hidden",
         }}>
-          <FBFormMock ref={formRef} onReset={handleResetAll} />
+          <FBFormMock ref={formRef} onReset={handleResetAll} onValuesChange={handleValuesChange} />
         </div>
 
         <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
@@ -237,14 +293,17 @@ export default function Demo() {
             flex: 1, background: "#1c1c1c", display: "flex", alignItems: "center",
             justifyContent: "center", position: "relative", overflow: "hidden",
           }}>
-            {currentVehicle.make ? (
+            {anyFilled ? (
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 72, marginBottom: 12 }}>🚗</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: D.text }}>
-                  {[currentVehicle.year, currentVehicle.make, currentVehicle.model].filter(Boolean).join(" ")}
+                <div style={{ fontSize: 80, marginBottom: 14, filter: "drop-shadow(0 4px 16px rgba(0,0,0,0.5))" }}>🚗</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: D.text }}>
+                  {[liveValues.year, liveValues.make, liveValues.model].filter(Boolean).join(" ")}
                 </div>
-                {currentVehicle.exteriorColor && (
-                  <div style={{ fontSize: 12, color: D.muted, marginTop: 4 }}>{currentVehicle.exteriorColor}</div>
+                {liveValues.exteriorColor && (
+                  <div style={{ fontSize: 12, color: D.muted, marginTop: 4 }}>{liveValues.exteriorColor}</div>
+                )}
+                {liveValues.price && (
+                  <div style={{ fontSize: 14, fontWeight: 700, color: D.blue, marginTop: 8 }}>${liveValues.price}</div>
                 )}
               </div>
             ) : (
@@ -252,37 +311,42 @@ export default function Demo() {
                 <div style={{
                   width: 80, height: 80, borderRadius: "50%", background: D.field,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  margin: "0 auto 16px", fontSize: 32,
+                  margin: "0 auto 16px", fontSize: 36,
                 }}>📷</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: D.muted }}>Your vehicle photo</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: D.muted }}>Vehicle photos</div>
                 <div style={{ fontSize: 12, color: D.label, marginTop: 6 }}>will appear here</div>
               </div>
             )}
 
             <div style={{
-              position: "absolute", top: 8, left: 8,
-              background: "rgba(36,37,38,0.7)", borderRadius: 6,
-              padding: "4px 10px", fontSize: 11, fontWeight: 700, color: D.muted,
-              backdropFilter: "blur(4px)",
+              position: "absolute", top: 10, left: 12,
+              fontSize: 12, fontWeight: 700, color: D.muted,
+              letterSpacing: "0.02em",
             }}>Preview</div>
           </div>
 
-          <ListingPreviewCard vehicle={currentVehicle} />
+          <ListingPreviewCard values={liveValues} />
         </div>
 
         {popupOpen && (
           <div style={{
-            position: "absolute", top: 10, right: 290, zIndex: 40,
-            filter: "drop-shadow(0 8px 32px rgba(0,0,0,0.6))",
+            position: "absolute", top: 8, right: 308, zIndex: 40,
+            filter: "drop-shadow(0 8px 32px rgba(0,0,0,0.7))",
           }}>
-            <div style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
-              <img src={logoSmall} alt="Autimik" style={{ width: 18, height: 18, borderRadius: 4 }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", letterSpacing: "0.03em" }}>
+            <div style={{
+              marginBottom: 4, display: "flex", alignItems: "center", gap: 6,
+              padding: "0 2px",
+            }}>
+              <img src={logoSmall} alt="Autimik" style={{ width: 16, height: 16, borderRadius: 3 }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#22c55e", letterSpacing: "0.06em" }}>
                 AUTIMIK EXTENSION
               </span>
               <button
                 onClick={() => setPopupOpen(false)}
-                style={{ background: "none", border: "none", color: D.muted, cursor: "pointer", fontSize: 14, padding: "0 4px", marginLeft: "auto" }}
+                style={{
+                  background: "none", border: "none", color: D.muted,
+                  cursor: "pointer", fontSize: 16, padding: "0 2px", marginLeft: "auto", lineHeight: 1,
+                }}
               >×</button>
             </div>
             <ExtensionPopup
@@ -294,13 +358,14 @@ export default function Demo() {
         )}
 
         {!popupOpen && (
-          <div style={{ position: "absolute", top: 10, right: 10, zIndex: 40 }}>
+          <div style={{ position: "absolute", top: 8, right: 10, zIndex: 40 }}>
             <button
               onClick={() => setPopupOpen(true)}
               style={{
-                display: "flex", alignItems: "center", gap: 6, padding: "6px 12px",
+                display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
                 background: "#22c55e", border: "none", borderRadius: 8,
                 fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer",
+                boxShadow: "0 2px 12px rgba(34,197,94,0.4)",
               }}
             >
               <img src={logoSmall} alt="" style={{ width: 16, height: 16, borderRadius: 3 }} />
@@ -311,12 +376,10 @@ export default function Demo() {
       </div>
 
       <div style={{
-        height: 36, background: D.nav, borderTop: `1px solid ${D.divider}`,
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 20, flexShrink: 0,
+        height: 34, background: D.nav, borderTop: `1px solid ${D.divider}`,
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 24, flexShrink: 0,
       }}>
-        <span style={{ fontSize: 11, color: D.label }}>
-          Demo only — not connected to real Facebook
-        </span>
+        <span style={{ fontSize: 11, color: D.label }}>Demo — not connected to real Facebook</span>
         <Link href="/" style={{ fontSize: 11, color: D.blue, textDecoration: "none" }}>← Back to landing</Link>
         <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer"
           style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", textDecoration: "none" }}>
