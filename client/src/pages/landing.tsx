@@ -9,6 +9,7 @@ const CHROME_STORE_URL = "https://chromewebstore.google.com/detail/autimik-multi
 
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
 
   useEffect(() => {
     document.body.style.background = "#0a0f1e";
@@ -165,24 +166,165 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="border-t border-white/10 px-4 py-8">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <img src={logoSmall} alt="Autimik" className="w-6 h-6 rounded" />
-            <span className="text-gray-400 text-sm">Autimik</span>
+      <footer className="border-t border-white/10 px-4 pt-8 pb-6">
+        <div className="max-w-6xl mx-auto flex flex-col gap-5">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <img src={logoSmall} alt="Autimik" className="w-6 h-6 rounded" />
+              <span className="text-gray-400 text-sm">Autimik</span>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
+              <p className="text-gray-500 text-sm">
+                A project and application by{" "}
+                <a href="https://LECdealerapps.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors underline underline-offset-2">
+                  LECdealerapps
+                </a>
+              </p>
+              <Link href="/privacy" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Privacy Policy</Link>
+              <p className="text-gray-400 text-sm">&copy; {new Date().getFullYear()} Autimik. All rights reserved.</p>
+            </div>
           </div>
-          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
-            <p className="text-gray-500 text-sm">
-              A project and application by{" "}
-              <a href="https://LECdealerapps.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors underline underline-offset-2">
-                LECdealerapps
-              </a>
-            </p>
-            <Link href="/privacy" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Privacy Policy</Link>
-            <p className="text-gray-400 text-sm">&copy; {new Date().getFullYear()} Autimik. All rights reserved.</p>
+
+          <div className="border-t border-white/5 pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 text-center">
+            <span className="text-gray-600 text-xs font-medium uppercase tracking-widest">Developer Install</span>
+            <a
+              href="/autimik-extension.zip"
+              download
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md border border-white/10 text-gray-300 hover:text-white hover:border-white/25 transition-all"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+            >
+              <Download className="w-3 h-3" />
+              Download Extension ZIP
+            </a>
+            <span className="text-gray-500 text-xs">
+              Password: <code className="text-gray-300 font-mono bg-white/5 px-1.5 py-0.5 rounded text-xs">1234PASS</code>
+            </span>
+            <button
+              onClick={() => setShowInstallModal(true)}
+              className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors underline underline-offset-2"
+            >
+              How to install manually →
+            </button>
           </div>
         </div>
       </footer>
+
+      {showInstallModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowInstallModal(false); }}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+            style={{ background: "#111827" }}
+          >
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(34,197,94,0.12)" }}>
+                  <Download className="w-4 h-4" style={{ color: "#22c55e" }} />
+                </div>
+                <div>
+                  <h2 className="text-white font-bold text-base">Manual Chrome Install</h2>
+                  <p className="text-gray-500 text-xs">Developer mode sideload</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowInstallModal(false)}
+                className="text-gray-500 hover:text-white transition-colors p-1"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              {[
+                {
+                  n: 1,
+                  text: "Download the ZIP file",
+                  detail: (
+                    <span>
+                      Use the{" "}
+                      <a href="/autimik-extension.zip" download className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
+                        Download Extension ZIP
+                      </a>{" "}
+                      link in the footer.
+                    </span>
+                  ),
+                },
+                {
+                  n: 2,
+                  text: "Unzip the file",
+                  detail: (
+                    <span>
+                      Use any archive tool. When prompted for a password enter{" "}
+                      <code className="text-gray-200 font-mono bg-white/5 px-1.5 py-0.5 rounded text-xs">1234PASS</code>.
+                    </span>
+                  ),
+                },
+                {
+                  n: 3,
+                  text: "Open Chrome Extensions",
+                  detail: (
+                    <span>
+                      In Chrome, go to{" "}
+                      <code className="text-gray-200 font-mono bg-white/5 px-1.5 py-0.5 rounded text-xs">chrome://extensions</code>{" "}
+                      in the address bar.
+                    </span>
+                  ),
+                },
+                {
+                  n: 4,
+                  text: "Enable Developer mode",
+                  detail: "Toggle the Developer mode switch in the top-right corner of the Extensions page.",
+                },
+                {
+                  n: 5,
+                  text: 'Click "Load unpacked"',
+                  detail: "A new button will appear in the top-left. Click Load unpacked.",
+                },
+                {
+                  n: 6,
+                  text: "Select the unzipped folder",
+                  detail: 'Navigate to and select the unzipped AutimikCPD_Dev_031726 folder (not the ZIP file itself).',
+                },
+                {
+                  n: 7,
+                  text: "Done — Autimik is installed",
+                  detail: "Look for the puzzle-piece icon in your Chrome toolbar. Pin Autimik for easy access.",
+                },
+              ].map(({ n, text, detail }) => (
+                <div key={n} className="flex gap-4">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold" style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e" }}>
+                    {n}
+                  </div>
+                  <div>
+                    <p className="text-white text-sm font-semibold">{text}</p>
+                    <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">{detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between gap-4">
+              <p className="text-gray-600 text-xs">
+                Prefer the Chrome Web Store?{" "}
+                <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
+                  Install from there instead
+                </a>
+              </p>
+              <button
+                onClick={() => setShowInstallModal(false)}
+                className="text-sm font-semibold px-4 py-2 rounded-lg text-white transition-all hover:brightness-110 flex-shrink-0"
+                style={{ background: "#22c55e" }}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
