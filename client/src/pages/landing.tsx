@@ -10,6 +10,23 @@ const CHROME_STORE_URL = "https://chromewebstore.google.com/detail/autimik-multi
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [downloadPw, setDownloadPw] = useState("");
+  const [downloadErr, setDownloadErr] = useState(false);
+
+  const handleDownloadSubmit = () => {
+    if (downloadPw === "1234PASS") {
+      const a = document.createElement("a");
+      a.href = "/autimik-extension.zip";
+      a.download = "autimik-extension.zip";
+      a.click();
+      setShowDownloadModal(false);
+      setDownloadPw("");
+      setDownloadErr(false);
+    } else {
+      setDownloadErr(true);
+    }
+  };
 
   useEffect(() => {
     document.body.style.background = "#0a0f1e";
@@ -187,18 +204,14 @@ export default function Landing() {
 
           <div className="border-t border-white/5 pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 text-center">
             <span className="text-gray-600 text-xs font-medium uppercase tracking-widest">Developer Install</span>
-            <a
-              href="/autimik-extension.zip"
-              download
+            <button
+              onClick={() => { setShowDownloadModal(true); setDownloadPw(""); setDownloadErr(false); }}
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md border border-white/10 text-gray-300 hover:text-white hover:border-white/25 transition-all"
               style={{ background: "rgba(255,255,255,0.04)" }}
             >
               <Download className="w-3 h-3" />
               Download Extension ZIP
-            </a>
-            <span className="text-gray-500 text-xs">
-              Password: <code className="text-gray-300 font-mono bg-white/5 px-1.5 py-0.5 rounded text-xs">1234PASS</code>
-            </span>
+            </button>
             <button
               onClick={() => setShowInstallModal(true)}
               className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors underline underline-offset-2"
@@ -208,6 +221,75 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+
+      {showDownloadModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowDownloadModal(false); setDownloadPw(""); setDownloadErr(false); } }}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+            style={{ background: "#111827" }}
+          >
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(34,197,94,0.12)" }}>
+                  <Download className="w-4 h-4" style={{ color: "#22c55e" }} />
+                </div>
+                <div>
+                  <h2 className="text-white font-bold text-base">Download Extension</h2>
+                  <p className="text-gray-500 text-xs">Enter the access password</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowDownloadModal(false); setDownloadPw(""); setDownloadErr(false); }}
+                className="text-gray-500 hover:text-white transition-colors p-1"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5">
+              <label className="block text-gray-400 text-xs font-medium mb-2">Password</label>
+              <input
+                type="password"
+                value={downloadPw}
+                onChange={(e) => { setDownloadPw(e.target.value); setDownloadErr(false); }}
+                onKeyDown={(e) => { if (e.key === "Enter") handleDownloadSubmit(); }}
+                placeholder="Enter password"
+                autoFocus
+                className="w-full px-4 py-2.5 rounded-lg text-sm text-white outline-none border transition-colors"
+                style={{
+                  background: "#1f2937",
+                  borderColor: downloadErr ? "#ef4444" : "rgba(255,255,255,0.1)",
+                }}
+              />
+              {downloadErr && (
+                <p className="mt-2 text-xs text-red-400">Incorrect password. Please try again.</p>
+              )}
+            </div>
+
+            <div className="px-6 pb-5 flex gap-3">
+              <button
+                onClick={() => { setShowDownloadModal(false); setDownloadPw(""); setDownloadErr(false); }}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-all"
+                style={{ background: "rgba(255,255,255,0.04)" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDownloadSubmit}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white transition-all hover:brightness-110"
+                style={{ background: "#22c55e" }}
+              >
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showInstallModal && (
         <div
