@@ -84,15 +84,21 @@
       "selector": ["fb-label:Vehicle condition", "fb-label:Condition", "[aria-label=\"Vehicle condition\"]", "[aria-label*=\"Vehicle condition\"]", "[aria-label=\"Condition\"]"],
       "type": "dropdown",
       "valueMap": {
-        "new": "new",
-        "used": "used - good",
-        "cpo": "used - like new",
-        "certified": "used - like new",
-        "excellent": "used - like new",
-        "good": "used - good",
-        "fair": "used - fair"
+        "new": "Excellent",
+        "excellent": "Excellent",
+        "like new": "Very good",
+        "very good": "Very good",
+        "cpo": "Very good",
+        "certified": "Very good",
+        "used - like new": "Very good",
+        "used": "Good",
+        "good": "Good",
+        "used - good": "Good",
+        "fair": "Fair",
+        "used - fair": "Fair",
+        "poor": "Poor"
       },
-      "default": "used - good"
+      "default": "Good"
     },
     "fuelType": {
       "selector": ["fb-label:Fuel type", "[aria-label=\"Fuel type\"]", "[aria-label*=\"Fuel type\"]"],
